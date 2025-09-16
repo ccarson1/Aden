@@ -1,0 +1,21 @@
+class Player:
+    def __init__(self, player_id, name, frame_w, frame_h, x=100, y=100):
+        self.id = player_id
+        self.name = name
+        self.x = x
+        self.y = y
+        self.frame_w = frame_w
+        self.frame_h = frame_h
+        self.direction = "down"
+        self.moving = False
+
+
+
+class NPC:
+    pass  # Future expansion
+
+class Enemy:
+    pass  # Future expansion
+
+class GameMap:
+    pass  # Load maps, Tiled integration
