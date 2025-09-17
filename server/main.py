@@ -2,7 +2,8 @@
 
 import socket
 import threading, time, signal
-from server import config, network, game_state
+import config
+from server import network, game_state
 
 clients = {}      # {addr: Player}
 last_seen = {}    # {addr: timestamp}
@@ -13,7 +14,7 @@ lock = threading.Lock()
 # Cleanup inactive clients
 def cleanup_inactive():
     while running:
-        time.sleep(1.0)
+        time.sleep(config.PRR)
         now = time.time()
         inactive = [addr for addr, t in last_seen.items() if now - t > config.TIMEOUT]
         for addr in inactive:

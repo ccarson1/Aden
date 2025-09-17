@@ -15,7 +15,10 @@
 │   ├─ scenes/             # Modular game scenes
 │   │    ├─ __init__.py
 │   │    ├─ main_menu.py
-│   │    ├─ game_scene.py
+│   │    ├─ game_scene.py       
+│   │    ├─ login_scene.py      # Scene to allow user to login with username and password
+│   │    ├─ create_scene.py     # Scene to allow user to create a new user
+│   │    ├─ server_scene.py     # Scene to allow user to connect to server with ip and port
 │   │    └─ ...            # Additional scenes
 │   ├─ entities/           # Characters, NPCs, enemies
 │   │    ├─ __init__.py
@@ -30,6 +33,9 @@
 │   │    ├─ __init__.py
 │   │    └─ map_loader.py
 │   ├─ ui/                 # UI elements (menus, HUD)
+│   ├─ __init__.py
+│   ├─ button.py
+│   ├─ input_box.py
 │   └─ config.py           # Client config (window size, etc.)
 │
 ├─ assets/

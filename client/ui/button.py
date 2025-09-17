@@ -1,8 +1,9 @@
 import pygame
+import config
 
-FONT_SIZE = 32
-BUTTON_COLOR = (100, 100, 255)
-TEXT_COLOR = (255, 255, 255)
+FONT_SIZE = config.FONT_SIZE
+BUTTON_COLOR = config.BUTTON_COLOR
+TEXT_COLOR = config.TEXT_COLOR
 
 class Button:
     def __init__(self, x, y, w, h, text, font):

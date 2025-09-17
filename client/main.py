@@ -4,17 +4,18 @@ from client.scenes.login_scene import LoginScene
 from client.scenes.create_scene import CreateScene
 from client.scenes.server_scene import ServerScene
 from client.scenes.game_scene import GameScene  # Later integrate your game_scene
+import config
 
 pygame.init()
 
 
 # Create a font instance to pass to UI elements
-FONT_SIZE = 32
+FONT_SIZE = config.FONT_SIZE
 MAIN_FONT = pygame.font.SysFont(None, FONT_SIZE)
 
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = config.WIDTH, config.HEIGHT
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("UDP Multiplayer Game")
+pygame.display.set_caption("Aden")
 
 class SceneManager:
     def __init__(self, font):
