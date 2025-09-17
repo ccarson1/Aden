@@ -4,7 +4,7 @@ import threading
 import msgpack
 from ..entities.player import Player
 from assets.maps.map_loader import MapLoader
-from . network import Client
+from ..network.client import Client
 
 
 class GameScene:
