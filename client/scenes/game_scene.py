@@ -20,7 +20,8 @@ class GameScene:
         self.current_map = MapLoader("assets/maps/Test_01.tmx")
 
     def connect_to_server(self, ip, port):
-        self.client.connect(ip, port)
+            token = self.scene_manager.login_info["token"]  # get the token
+            self.client.connect(ip, port, token)  # now pass token!
 
     def handle_event(self, event):
         if event.type == pygame.QUIT:

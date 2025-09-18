@@ -1,14 +1,11 @@
-import socket
-import threading
-import msgpack
+import socket, threading, msgpack
 import pygame
-from ..entities.player import Player  # adjust import path if needed
-
+from ..entities.player import Player
 
 class Client:
     def __init__(self, player_sprite_path, frame_w=64, frame_h=64):
+        self.token = None
         self.client_socket = None
-        self.connected = False
         self.local_player_id = None
         self.local_player = Player(0, "Local", pygame.image.load(player_sprite_path).convert_alpha(), frame_w, frame_h)
         self.players = {}
@@ -16,11 +13,16 @@ class Client:
         self.frame_w = frame_w
         self.frame_h = frame_h
 
-    def connect(self, server_ip, server_port):
+    def connect(self, server_ip, server_port, token):
+        self.token = token 
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.client_socket.settimeout(1.0)
         try:
-            self.client_socket.sendto(msgpack.packb({"type": "join"}, use_bin_type=True), (server_ip, server_port))
+            # Include token in join request
+            self.client_socket.sendto(
+                msgpack.packb({"type": "join", "token": token}, use_bin_type=True),
+                (server_ip, server_port)
+            )
         except Exception as e:
             print("Failed to send join:", e)
             return
@@ -50,8 +52,7 @@ class Client:
                                         pygame.image.load(self.player_sprite_path).convert_alpha(),
                                         p.get("frame_w", self.frame_w),
                                         p.get("frame_h", self.frame_h),
-                                        p["x"],
-                                        p["y"]
+                                        p["x"], p["y"]
                                     )
                                 else:
                                     player = self.players[p["id"]]
@@ -59,6 +60,13 @@ class Client:
                                     player.y = p["y"]
                                     player.direction = p["direction"]
                                     player.moving = p["moving"]
+
+                    elif message["type"] == "player_disconnect":
+                        pid = message["player_id"]
+                        if pid in self.players:
+                            print(f"[CLIENT] Removing disconnected player {pid}")
+                            del self.players[pid]
+
                 except socket.timeout:
                     continue
                 except Exception as e:
@@ -66,19 +74,16 @@ class Client:
                     break
 
         threading.Thread(target=listen_server, daemon=True).start()
-        self.connected = True
 
     def send_move(self, x, y, direction, moving, server_ip, server_port):
-        if not self.connected or self.local_player_id is None:
+        if not self.token:
             return
-        try:
-            msg = msgpack.packb({
-                "type": "move",
-                "x": x,
-                "y": y,
-                "direction": direction,
-                "moving": moving
-            }, use_bin_type=True)
-            self.client_socket.sendto(msg, (server_ip, server_port))
-        except Exception:
-            pass
+        msg = {
+            "type": "move",
+            "x": x,
+            "y": y,
+            "direction": direction,
+            "moving": moving,
+            "token": self.token
+        }
+        self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))

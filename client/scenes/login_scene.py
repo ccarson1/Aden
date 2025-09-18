@@ -2,6 +2,7 @@ import pygame
 from client.ui.input_box import InputBox
 from client.ui.button import Button
 import os
+from client.network import network_auth
 
 class LoginScene:
     def __init__(self, scene_manager, font, width, height):
@@ -34,6 +35,8 @@ class LoginScene:
                                   "Next",
                                   font)
 
+        self.back_button = Button(button_x, start_y + (3 * input_height) + (3 * spacing), button_width, button_height, "Back", font)
+
         self.input_boxes = [self.username_box, self.password_box]
 
         # Load background
@@ -41,16 +44,38 @@ class LoginScene:
         self.background_image = pygame.image.load(path)
         self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
 
+    # def handle_event(self, event):
+    #     for box in self.input_boxes:
+    #         box.handle_event(event)
+    #     if event.type == pygame.MOUSEBUTTONDOWN:
+    #         if self.next_button.is_clicked(event.pos):
+    #             self.scene_manager.login_info = {
+    #                 "username": self.username_box.text,
+    #                 "password": self.password_box.text
+    #             }
+    #             self.scene_manager.switch_scene("server")
+
     def handle_event(self, event):
         for box in self.input_boxes:
             box.handle_event(event)
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.next_button.is_clicked(event.pos):
-                self.scene_manager.login_info = {
-                    "username": self.username_box.text,
-                    "password": self.password_box.text
-                }
-                self.scene_manager.switch_scene("server")
+                username = self.username_box.text
+                password = self.password_box.text
+                result = network_auth.authenticate(username, password)
+                if result["status"] == "ok":
+                    token = result["token"]  # save the token from the server
+                    self.scene_manager.login_info = {
+                        "username": username,
+                        "password": password,
+                        "token": token   # pass it along to the next scene
+                    }
+                    self.scene_manager.switch_scene("server")
+                else:
+                    print("[ERROR] Invalid login!")
+            
+            if self.back_button.is_clicked(event.pos):
+                self.scene_manager.switch_scene("main_menu")
 
     def update(self, dt):
         pass
@@ -61,3 +86,4 @@ class LoginScene:
         for box in self.input_boxes:
             box.draw(surface)
         self.next_button.draw(surface)
+        self.back_button.draw(surface)
