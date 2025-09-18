@@ -4,6 +4,7 @@ import msgpack
 import uuid
 import auth_db  # your SQLite auth database module
 import sys
+import time
 
 HOST = "127.0.0.1"
 AUTH_PORT = 50900
@@ -22,15 +23,13 @@ def handle_client(conn, addr):
         response = {"status": "fail"}
         if msg["type"] == "login":
             if auth_db.verify_user(msg["username"], msg["password"]):
-                token = str(uuid.uuid4())
-                active_tokens[token] = msg["username"]
+                token = get_or_create_token(msg["username"])
                 response = {"status": "ok", "token": token}
         elif msg["type"] == "create":
             success = auth_db.create_user(msg["username"], msg["password"])
             if success:
                 auth_db.create_character(msg["username"], msg["char_name"])
-                token = str(uuid.uuid4())
-                active_tokens[token] = msg["username"]
+                token = get_or_create_token(msg["username"])
                 response = {"status": "ok", "token": token}
             else:
                 response = {"status": "fail", "reason": "username_taken"}
@@ -42,6 +41,26 @@ def handle_client(conn, addr):
         print(f"[AUTH ERROR] {e}")
     finally:
         conn.close()
+
+def get_or_create_token(username):
+    # Check if user already has a token
+    for tok, user in active_tokens.items():
+        if user == username:
+            return tok
+    # Otherwise, create a new token
+    token = str(uuid.uuid4())
+    active_tokens[token] = username
+    return token
+
+def print_active_tokens():
+    while True:
+        time.sleep(5)  # every 5 seconds
+        if active_tokens:
+            print("[INFO] Active tokens and users:")
+            for token, user in active_tokens.items():
+                print(f"  Token: {token} -> User: {user}")
+        else:
+            print("[INFO] No active tokens")
 
 def start_auth_server():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -64,4 +83,5 @@ def start_auth_server():
         sys.exit(0)
 
 if __name__ == "__main__":
+    threading.Thread(target=print_active_tokens, daemon=True).start()
     start_auth_server()
