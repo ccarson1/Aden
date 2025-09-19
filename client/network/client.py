@@ -1,3 +1,4 @@
+#client/network/client.py
 import socket, threading, msgpack
 import pygame
 from ..entities.player import Player
@@ -36,7 +37,15 @@ class Client:
                     if message["type"] == "assign_id":
                         self.local_player_id = message["player_id"]
                         self.local_player.id = self.local_player_id
-                        print(f"[INFO] Assigned player ID: {self.local_player_id}")
+
+                        # Load initial position from server
+                        if "player_data" in message:
+                            data = message["player_data"]
+                            self.local_player.x = data.get("x", 100)
+                            self.local_player.y = data.get("y", 100)
+                            self.local_player.direction = data.get("direction", "down")
+
+                        print(f"[INFO] Assigned player ID: {self.local_player_id} at ({self.local_player.x}, {self.local_player.y})")
 
                     elif message["type"] == "update":
                         for p in message["players"]:

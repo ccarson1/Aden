@@ -36,17 +36,6 @@ class CreateScene:
         self.background_image = pygame.image.load(path)
         self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
 
-    # def handle_event(self, event):
-    #     for box in self.input_boxes:
-    #         box.handle_event(event)
-    #     if event.type == pygame.MOUSEBUTTONDOWN:
-    #         if self.next_button.is_clicked(event.pos):
-    #             self.scene_manager.create_info = {
-    #                 "char_name": self.char_box.text,
-    #                 "username": self.username_box.text,
-    #                 "password": self.password_box.text
-    #             }
-    #             self.scene_manager.switch_scene("server")
 
     def handle_event(self, event):
         for box in self.input_boxes:

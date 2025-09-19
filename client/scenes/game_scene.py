@@ -1,3 +1,4 @@
+#cleint/scenes/game_scene.py
 import pygame
 import socket
 import threading
@@ -5,6 +6,7 @@ import msgpack
 from ..entities.player import Player
 from assets.maps.map_loader import MapLoader
 from ..network.client import Client
+import time
 
 
 class GameScene:
@@ -15,6 +17,7 @@ class GameScene:
         self.client = Client(spritesheet_path)
         self.local_player = self.client.local_player
         self.players = self.client.players
+        self.SAVE_INTERVAL = 30  
 
         # Load first map
         self.current_map = MapLoader("assets/maps/Test_01.tmx")
@@ -22,11 +25,30 @@ class GameScene:
     def connect_to_server(self, ip, port):
             token = self.scene_manager.login_info["token"]  # get the token
             self.client.connect(ip, port, token)  # now pass token!
+            self.start_auto_save(self.client, ip, port, token)
 
     def handle_event(self, event):
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
+
+    def start_auto_save(self, client, server_ip, server_port, token):
+        def save_loop():
+            while True:
+                time.sleep(self.SAVE_INTERVAL)
+                player = self.local_player  # always get the latest reference
+                if player is None:
+                    continue
+                msg = {
+                    "type": "save",
+                    "token": token,
+                    "x": player.x,
+                    "y": player.y,
+                    "direction": player.direction
+                }
+                client.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))
+
+        threading.Thread(target=save_loop, daemon=True).start()
 
     def update(self, dt):
 

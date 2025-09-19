@@ -1,3 +1,4 @@
+#client/entities/player.py
 import pygame
 
 class Player:

@@ -1,5 +1,6 @@
 HOST = "127.0.0.1"
 PORT = 50880
+AUTH_PORT = 50900
 TIMEOUT = 1.0
 PRR = 1.0 # Player Removal Rate
 #BUFFER_SIZE = 1024
