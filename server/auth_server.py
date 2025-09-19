@@ -5,9 +5,10 @@ import msgpack
 import auth_db  # your SQLite auth database module
 import sys
 import time
+import config
 
-HOST = "127.0.0.1"
-AUTH_PORT = 50900
+HOST = config.HOST
+AUTH_PORT = config.AUTH_PORT
 
 auth_db.init_db()
 

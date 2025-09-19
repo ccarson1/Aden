@@ -1,7 +1,8 @@
 # client/network_auth.py
 import socket, msgpack
+import config
 
-def authenticate(username, password, host="127.0.0.1", port=50900):
+def authenticate(username, password, host=config.HOST, port=config.AUTH_PORT):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     s.sendall(msgpack.packb({"type":"login","username":username,"password":password}, use_bin_type=True))
@@ -9,7 +10,7 @@ def authenticate(username, password, host="127.0.0.1", port=50900):
     s.close()
     return response
 
-def create_account(char_name, username, password, host="127.0.0.1", port=50900):
+def create_account(char_name, username, password, host=config.HOST, port=config.AUTH_PORT):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((host, port))
     s.sendall(msgpack.packb({"type":"create","char_name":char_name,"username":username,"password":password}, use_bin_type=True))
