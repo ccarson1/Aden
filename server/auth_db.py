@@ -42,6 +42,7 @@ def init_db():
         x REAL NOT NULL,
         y REAL NOT NULL,
         direction TEXT NOT NULL,
+        current_map TEXT,
         last_update INTEGER NOT NULL
     )
     """)
@@ -169,19 +170,20 @@ def refresh_token(token, additional_ttl=TOKEN_TTL):
     return True
 
 
-def save_player_state(player_id, username, x, y, direction):
+def save_player_state(player_id, username, x, y, direction, current_map):
     now = int(time.time())
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     cur.execute("""
-    INSERT INTO player_data (player_id, username, x, y, direction, last_update)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO player_data (player_id, username, x, y, direction, current_map, last_update)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(player_id) DO UPDATE SET
         x=excluded.x,
         y=excluded.y,
         direction=excluded.direction,
+        current_map=excluded.current_map,
         last_update=excluded.last_update
-    """, (player_id, username, x, y, direction, now))
+    """, (player_id, username, x, y, direction, current_map, now))
     conn.commit()
     conn.close()
 

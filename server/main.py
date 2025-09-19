@@ -204,7 +204,7 @@ def start_server():
                     if msg["type"] == "save":
                         # Example save payload: {"token": ..., "type": "save", "x":..., "y":..., "direction":...}
                         username = auth_db.get_username_from_token(token)
-                        auth_db.save_player_state(pid, username, msg["x"], msg["y"], msg["direction"])
+                        auth_db.save_player_state(pid, username, msg["x"], msg["y"], msg["direction"], msg['current_map'])
 
         except socket.timeout:
             continue

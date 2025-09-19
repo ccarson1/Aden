@@ -2,7 +2,7 @@
 import socket
 import threading
 import msgpack
-import auth_db  # your SQLite auth database module
+from server import auth_db  # your SQLite auth database module
 import sys
 import time
 import config

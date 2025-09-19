@@ -18,9 +18,10 @@ class GameScene:
         self.local_player = self.client.local_player
         self.players = self.client.players
         self.SAVE_INTERVAL = 30  
+        self.map = 'Test_01'
 
         # Load first map
-        self.current_map = MapLoader("assets/maps/Test_01.tmx")
+        self.current_map = MapLoader(f"assets/maps/{self.map}.tmx")
 
     def connect_to_server(self, ip, port):
             token = self.scene_manager.login_info["token"]  # get the token
@@ -44,7 +45,8 @@ class GameScene:
                     "token": token,
                     "x": player.x,
                     "y": player.y,
-                    "direction": player.direction
+                    "direction": player.direction,
+                    "current_map": self.map
                 }
                 client.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))
 
