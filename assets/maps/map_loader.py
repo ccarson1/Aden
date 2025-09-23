@@ -1,37 +1,48 @@
 # assets/maps/map_loader.py
 import pygame
 import pytmx
+from pytmx.util_pygame import load_pygame
+from pytmx import TiledTileLayer
 
-class MapLoader:
-    def __init__(self, filename, scale=1):
-        self.tmx_data = pytmx.load_pygame(filename, pixelalpha=True)
-        self.scale = scale
+class AnimatedTile:
+    def __init__(self, frames, tmx_data):
+        self.frames = [tmx_data.get_tile_image_by_gid(frame.gid) for frame in frames]
+        self.durations = [frame.duration for frame in frames]
+        self.index = 0
+        self.timer = 0
+        self.image = self.frames[0]
 
-        self.width = self.tmx_data.width * self.tmx_data.tilewidth
-        self.height = self.tmx_data.height * self.tmx_data.tileheight
+    def update(self, dt):
+        self.timer += dt
+        if self.timer >= self.durations[self.index] / 1000:  # convert ms -> s
+            self.timer = 0
+            self.index = (self.index + 1) % len(self.frames)
+            self.image = self.frames[self.index]
 
-        # --- Store collision rects from "Collision" layer ---
-        self.colliders = []
-        for layer in self.tmx_data.layers:
-            if layer.name == "Collision":
-                for x, y, gid in layer:
-                    if gid != 0:  # skip empty tiles
-                        rect = pygame.Rect(
-                            x * self.tmx_data.tilewidth,
-                            y * self.tmx_data.tileheight,
-                            self.tmx_data.tilewidth,
-                            self.tmx_data.tileheight
-                        )
-                        self.colliders.append(rect)
+class TileLayer:
+    def __init__(self, tmx_data, layer_index):
+        self.layer = tmx_data.layers[layer_index]
+        self.tmx_data = tmx_data
+        self.tiles = []
+
+        for x, y, gid in self.layer:
+            if gid == 0:
+                continue
+            props = tmx_data.get_tile_properties_by_gid(gid) or {}
+            anim = props.get("frames")
+            if anim:
+                self.tiles.append((x, y, AnimatedTile(anim, tmx_data)))
+            else:
+                self.tiles.append((x, y, tmx_data.get_tile_image_by_gid(gid)))
+
+    def update(self, dt):
+        for _, _, tile in self.tiles:
+            if isinstance(tile, AnimatedTile):
+                tile.update(dt)
 
     def draw(self, surface):
-        """Draw ALL visible layers, including Collision."""
-        for layer in self.tmx_data.visible_layers:
-            if isinstance(layer, pytmx.TiledTileLayer):
-                for x, y, gid in layer:
-                    tile = self.tmx_data.get_tile_image_by_gid(gid)
-                    if tile:
-                        surface.blit(
-                            tile,
-                            (x * self.tmx_data.tilewidth, y * self.tmx_data.tileheight)
-                        )
+        for x, y, tile in self.tiles:
+            if isinstance(tile, AnimatedTile):
+                surface.blit(tile.image, (x * self.tmx_data.tilewidth, y * self.tmx_data.tileheight))
+            else:
+                surface.blit(tile, (x * self.tmx_data.tilewidth, y * self.tmx_data.tileheight))

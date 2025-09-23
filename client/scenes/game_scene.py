@@ -4,7 +4,9 @@ import socket
 import threading
 import msgpack
 from ..entities.player import Player
-from assets.maps.map_loader import MapLoader
+from ..entities import game_map
+from assets.maps.map_loader import TileLayer, load_pygame
+from pytmx import TiledTileLayer
 from ..network.client import Client
 import time
 
@@ -18,10 +20,13 @@ class GameScene:
         self.local_player = self.client.local_player
         self.players = self.client.players
         self.SAVE_INTERVAL = 30  
-        self.map = 'Test_01'
+        self.map = 'Harbor_01'
+        #self.map = 'Test_01'
+
+        self.clock = pygame.time.Clock()
 
         # Load first map
-        self.current_map = MapLoader(f"assets/maps/{self.map}.tmx")
+        self.current_map = game_map.GameMap(f"assets/maps/{self.map}.tmx")
 
     def connect_to_server(self, ip, port):
             token = self.scene_manager.login_info["token"]  # get the token
@@ -53,6 +58,8 @@ class GameScene:
         threading.Thread(target=save_loop, daemon=True).start()
 
     def update(self, dt):
+        # --- Update the map first (this updates animated tiles) ---
+        self.current_map.update(dt)
 
         # --- Local player movement ---
         keys = pygame.key.get_pressed()
@@ -72,7 +79,7 @@ class GameScene:
         self.local_player.move(dx, dy, dt, self.current_map.colliders)
         self.local_player.direction = direction
 
-        # Send local player state to server
+        # --- Send local player state to server ---
         if self.client.local_player_id is not None:
             self.client.send_move(
                 self.local_player.x,
@@ -83,14 +90,12 @@ class GameScene:
                 self.scene_manager.server_info["port"]
             )
 
-        # --- Remote players ---
+        # --- Remote players animation update only ---
         for p in self.players.values():
-            # Update animation only (position is synced from server)
             p.update_animation(dt, moving=True)
 
     def load_map(self, map_name):
-        self.current_map = MapLoader(f"assets/maps/{map_name}.tmx")
-
+        self.current_map = game_map.GameMap(f"assets/maps/{self.map}.tmx")
     def draw(self, surface):
         surface.fill((0, 0, 0))
         self.current_map.draw(surface)
