@@ -2,6 +2,7 @@ import pygame
 from client.ui.input_box import InputBox
 from client.ui.button import Button
 import os
+import config
 
 class ServerScene:
     def __init__(self, scene_manager, font, width, height):
@@ -23,7 +24,7 @@ class ServerScene:
         total_height = (2 * input_height) + button_height + (2 * spacing)
         start_y = (self.height - total_height) // 2
 
-        self.ip_box = InputBox(input_x, start_y, input_width, input_height, "Server IP", font , "127.0.0.1")
+        self.ip_box = InputBox(input_x, start_y, input_width, input_height, "Server IP", font , config.HOST)
         self.port_box = InputBox(input_x, start_y + input_height + spacing, input_width, input_height, "Server Port", font , "50880")
         self.connect_button = Button(button_x,
                                   start_y + (2 * input_height) + (2 * spacing),

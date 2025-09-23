@@ -69,7 +69,7 @@ class GameScene:
         if keys[pygame.K_d]:
             dx = 1; direction = "right"; moving = True
 
-        self.local_player.move(dx, dy, dt)
+        self.local_player.move(dx, dy, dt, self.current_map.colliders)
         self.local_player.direction = direction
 
         # Send local player state to server
