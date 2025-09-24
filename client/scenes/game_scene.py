@@ -58,6 +58,30 @@ class GameScene:
 
         threading.Thread(target=save_loop, daemon=True).start()
 
+    def check_portals(self):
+        if not self.current_map:
+            return
+
+        # Loop through all portal tiles
+        for portal in self.current_map.portal_tiles:  # we'll define portal_tiles in GameMap
+            rect = portal['rect']
+            if rect.colliderect(self.local_player.rect):
+                # Collision detected
+                target_map = portal.get('target_map')
+                spawn_x = portal.get('spawn_x', 100)
+                spawn_y = portal.get('spawn_y', 100)
+                
+                if target_map:
+                    print(f"[INFO] Portal triggered: {target_map} at ({spawn_x}, {spawn_y})")
+                    self.map = target_map
+                    self.load_map(target_map)
+
+                    # Set player spawn position
+                    self.local_player.x = spawn_x
+                    self.local_player.y = spawn_y
+                    break  # only one portal per update
+
+
     def update(self, dt):
         # --- Load map only after server tells us ---
         if self.client.local_player and self.client.local_player.current_map:
@@ -88,6 +112,34 @@ class GameScene:
 
             self.local_player.move(dx, dy, dt, self.current_map.colliders)
             self.local_player.direction = direction
+
+            # --- Check for portal collisions ---
+            if self.current_map and self.local_player:
+                player_hitbox = self.local_player.get_hitbox()
+                portal = self.current_map.get_portal_at(player_hitbox)
+                if portal:
+                    print(f"[INFO] Player collided with portal to {portal.target_map} at ({portal.spawn_x},{portal.spawn_y})")
+
+                    # Update local player map and position
+                    self.map = portal.target_map
+                    self.local_player.current_map = portal.target_map  # important
+                    self.local_player.x = portal.spawn_x
+                    self.local_player.y = portal.spawn_y
+                    self.local_player.rect = self.local_player.get_hitbox()  # update rect after teleport
+
+                    # Load the new map
+                    self.load_map(self.map)
+
+                    # Send updated state to server immediately to avoid server overwriting
+                    if self.client.local_player_id is not None:
+                        self.client.send_move(
+                        self.local_player.x,
+                        self.local_player.y,
+                        self.local_player.direction,
+                        False,  # moving
+                        self.scene_manager.server_info["ip"],
+                        self.scene_manager.server_info["port"]
+                    )
 
             # Send local player state
             if self.client.local_player_id is not None:

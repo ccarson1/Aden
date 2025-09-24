@@ -7,8 +7,8 @@
   <image source="../images/CL_Buildings.png" width="560" height="656"/>
   <tile id="743">
    <properties>
-    <property name="spawn_x" value="132"/>
-    <property name="spawn_y" value="164"/>
+   <property name="spawn_x" value="100"/>
+    <property name="spawn_y" value="100"/>
     <property name="target_map" value="home_interior_01"/>
    </properties>
   </tile>
