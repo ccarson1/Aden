@@ -190,12 +190,12 @@ def save_player_state(player_id, username, x, y, direction, current_map):
 def load_player_state(username):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("SELECT x, y, direction FROM player_data WHERE username=?", (username,))
+    c.execute("SELECT x, y, direction, current_map FROM player_data WHERE username=?", (username,))
     row = c.fetchone()
     conn.close()
     if row:
-        return {"x": row[0], "y": row[1], "direction": row[2]}
-    return {"x": 100, "y": 100, "direction": "down"}
+        return {"x": row[0], "y": row[1], "direction": row[2], "current_map": row[3]}
+    return {"x": 100, "y": 100, "direction": "down", "current_map": "Test_01"}
 
 def get_username_from_token(token):
     conn = sqlite3.connect(DB_FILE)

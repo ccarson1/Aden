@@ -8,7 +8,7 @@ class Player:
         self.frame_h = frame_h
         self.direction = "down"
         self.moving = False
-        self.current_map = "Test_01"  # default map
+        self.current_map = None  # default map
 
 
 

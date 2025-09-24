@@ -11,6 +11,7 @@ class Player:
         self.anim_frame = 0
         self.frame_w = frame_w
         self.frame_h = frame_h
+        self.current_map = None
 
         self.MOVE_SPEED = 1
         self.ANIMATION_SPEED = 0.15  # seconds per frame
