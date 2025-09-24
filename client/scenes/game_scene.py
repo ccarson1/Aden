@@ -83,19 +83,18 @@ class GameScene:
 
 
     def update(self, dt):
-        # --- Load map only after server tells us ---
+        # --- Load map based on server/local state ---
         if self.client.local_player and self.client.local_player.current_map:
             if self.map != self.client.local_player.current_map:
-                self.map = self.client.local_player.current_map
+                self.map = self.client.local_player.current_map  # string map name
                 print(f"[INFO] Loading map: {self.map}")
-                self.load_map(self.map)
+                self.load_map(self.map)  # self.current_map is GameMap object
 
-        # --- Only update stuff if map is loaded ---
         if self.current_map:
             # Update animated tiles
             self.current_map.update(dt)
 
-            # Local player movement
+            # --- Local player movement ---
             keys = pygame.key.get_pressed()
             dx = dy = 0
             moving = False
@@ -114,34 +113,34 @@ class GameScene:
             self.local_player.direction = direction
 
             # --- Check for portal collisions ---
-            if self.current_map and self.local_player:
+            if self.local_player:
                 player_hitbox = self.local_player.get_hitbox()
                 portal = self.current_map.get_portal_at(player_hitbox)
                 if portal:
                     print(f"[INFO] Player collided with portal to {portal.target_map} at ({portal.spawn_x},{portal.spawn_y})")
-
+                    
                     # Update local player map and position
-                    self.map = portal.target_map
-                    self.local_player.current_map = portal.target_map  # important
+                    self.map = portal.target_map  # string
+                    self.local_player.current_map = portal.target_map  # string
                     self.local_player.x = portal.spawn_x
                     self.local_player.y = portal.spawn_y
-                    self.local_player.rect = self.local_player.get_hitbox()  # update rect after teleport
+                    self.local_player.rect = self.local_player.get_hitbox()
 
-                    # Load the new map
+                    # Load the new map (GameMap object)
                     self.load_map(self.map)
 
-                    # Send updated state to server immediately to avoid server overwriting
+                    # Send updated state to server immediately
                     if self.client.local_player_id is not None:
                         self.client.send_move(
-                        self.local_player.x,
-                        self.local_player.y,
-                        self.local_player.direction,
-                        False,  # moving
-                        self.scene_manager.server_info["ip"],
-                        self.scene_manager.server_info["port"]
-                    )
+                            self.local_player.x,
+                            self.local_player.y,
+                            self.local_player.direction,
+                            False,
+                            self.scene_manager.server_info["ip"],
+                            self.scene_manager.server_info["port"]
+                        )
 
-            # Send local player state
+            # --- Send local player state ---
             if self.client.local_player_id is not None:
                 self.client.send_move(
                     self.local_player.x,
@@ -152,7 +151,7 @@ class GameScene:
                     self.scene_manager.server_info["port"]
                 )
 
-            # Update remote players
+            # --- Update remote players ---
             for p in self.players.values():
                 p.update_animation(dt, moving=True)
 
@@ -172,13 +171,19 @@ class GameScene:
         if self.map is None:
             text = self.font.render("Waiting for server...", True, (255, 255, 255))
             surface.blit(text, (50, 50))
-        else:
-            surface.fill((0, 0, 0))
-            if self.current_map:
-                self.current_map.draw(surface)
+            return
 
-            for p in self.players.values():
+        surface.fill((0, 0, 0))
+
+        # Draw map tiles
+        if self.current_map:
+            self.current_map.draw(surface)
+
+        # Draw remote players **only if on same map**
+        for p in self.players.values():
+            if p.current_map == self.local_player.current_map:
                 p.draw(surface)
 
-            if self.local_player:
-                self.local_player.draw(surface)
+        # Draw local player last
+        if self.local_player:
+            self.local_player.draw(surface)

@@ -63,6 +63,8 @@ class Client:
                                 self.local_player.y = p["y"]
                                 self.local_player.direction = p["direction"]
                                 self.local_player.moving = p["moving"]
+                                self.local_player.current_map = p.get("current_map", self.local_player.current_map)
+                                
                             else:
                                 if p["id"] not in self.players:
                                     self.players[p["id"]] = Player(
@@ -70,14 +72,16 @@ class Client:
                                         pygame.image.load(self.player_sprite_path).convert_alpha(),
                                         p.get("frame_w", self.frame_w),
                                         p.get("frame_h", self.frame_h),
-                                        p["x"], p["y"]
+                                        p["x"], p["y"],
                                     )
+                                    
                                 else:
                                     player = self.players[p["id"]]
                                     player.x = p["x"]
                                     player.y = p["y"]
                                     player.direction = p["direction"]
                                     player.moving = p["moving"]
+                                    player.current_map = p.get("current_map", player.current_map)
 
                     elif message["type"] == "player_disconnect":
                         pid = message["player_id"]
@@ -102,6 +106,7 @@ class Client:
             "y": y,
             "direction": direction,
             "moving": moving,
+            "current_map": self.local_player.current_map,
             "token": self.token
         }
         self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))

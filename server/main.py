@@ -118,7 +118,8 @@ def broadcast():
                     "direction": getattr(p, "direction", "down"),
                     "moving": getattr(p, "moving", False),
                     "frame_w": getattr(p, "frame_w", 64),
-                    "frame_h": getattr(p, "frame_h", 64)
+                    "frame_h": getattr(p, "frame_h", 64),
+                    "current_map": getattr(p, "current_map", "DefaultMap")
                 })
             for p in clients.values():
                 try:
@@ -177,6 +178,7 @@ def start_server():
                     )
                     clients[pid].direction = saved_data.get("direction", "down")
                     clients[pid].addr = addr
+                    clients[pid].current_map = saved_data.get("current_map", "DefaultMap")
                     last_seen[pid] = time.time()
 
                     # Send assigned ID + initial state to client
@@ -200,6 +202,10 @@ def start_server():
                         player.y = msg["y"]
                         player.direction = msg.get("direction", player.direction)
                         player.moving = msg.get("moving", False)
+                        
+                        # Update current_map from client
+                        if "current_map" in msg:
+                            player.current_map = msg["current_map"]
 
                     if msg["type"] == "save":
                         # Example save payload: {"token": ..., "type": "save", "x":..., "y":..., "direction":...}
