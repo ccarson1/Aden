@@ -5,6 +5,8 @@ import pygame
 import time
 from ..entities.player import Player
 from ..entities import game_map
+from client.entities.camera import Camera
+import config
 
 class GameScene:
     """
@@ -22,6 +24,7 @@ class GameScene:
             font: pygame Font object for rendering text/UI.
             client: Network client instance for communicating with the server.
         """
+        
         self.scene_manager = scene_manager
         self.font = font
         self.client = client
@@ -45,6 +48,7 @@ class GameScene:
 
         # Input history for client-side prediction and reconciliation
         self.input_history = []
+        self.camera = Camera(config.WIDTH, config.HEIGHT, zoom=1.0)
 
     def load(self, map_name=None):
         """
@@ -206,6 +210,11 @@ class GameScene:
             self.scene_manager.server_info["port"]
         )
 
+        if self.current_map:
+            map_width = self.current_map.tmx_data.width * self.current_map.tmx_data.tilewidth
+            map_height = self.current_map.tmx_data.height * self.current_map.tmx_data.tileheight
+            self.camera.update(self.local_player, map_width, map_height)
+
     def load_map(self, map_name):
         """
         Load a Tiled map from the assets directory.
@@ -223,30 +232,41 @@ class GameScene:
         self.map_name = map_name
 
     def draw(self, surface):
-        """
-        Draw the game scene to the given Pygame surface.
-        Draw order: map layers -> remote players -> local player -> optional waiting text.
-
-        Args:
-            surface (pygame.Surface): The target surface to draw on.
-        """
         # Clear screen
         surface.fill((0, 0, 0))
 
-        # Draw map layers (including animated tiles)
-        if self.current_map:
-            self.current_map.draw(surface)
-
-        # Draw remote players (only those on the same map)
-        for p in self.players.values():
-            if p.current_map == self.local_player.current_map:
-                p.draw(surface)
-
-        # Draw local player
-        self.local_player.draw(surface)
-
-        # Show waiting message if map hasn't loaded yet
         if not self.current_map:
             text = self.font.render("Waiting for server...", True, (255, 255, 255))
             surface.blit(text, (50, 50))
+            return
+
+        # --- Step 1: Make a temp surface the size of the camera viewport ---
+        cam_rect = self.camera.rect
+        temp_surface = pygame.Surface((cam_rect.width, cam_rect.height), pygame.SRCALPHA)
+
+        # --- Step 2: Draw map with camera offset ---
+        self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y))
+
+        # --- Step 3: Draw remote players with offset ---
+        for p in self.players.values():
+            if p.current_map == self.local_player.current_map:
+                frame = p.frames[p.direction][p.anim_frame]
+                temp_surface.blit(frame, (p.x - cam_rect.x, p.y - cam_rect.y))
+
+        # --- Step 4: Draw local player ---
+        frame = self.local_player.frames[self.local_player.direction][self.local_player.anim_frame]
+        temp_surface.blit(frame, (self.local_player.x - cam_rect.x, self.local_player.y - cam_rect.y))
+
+        # --- Step 5: Zoom ---
+        if self.camera.zoom != 1.0:
+            scaled = pygame.transform.scale(
+                temp_surface,
+                (int(cam_rect.width * self.camera.zoom), int(cam_rect.height * self.camera.zoom))
+            )
+            surface.blit(scaled, (0, 0))
+        else:
+            surface.blit(temp_surface, (0, 0))
+
+
+
 

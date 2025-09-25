@@ -141,9 +141,9 @@ class GameMap:
         for layer in self.layers:
             layer.update(dt)
 
-    def draw(self, surface):
+    def draw(self, surface, offset=(0, 0)):
         for layer in self.layers:
-            layer.draw(surface)
+            layer.draw(surface, offset)
 
     def get_portal_at(self, player_rect):
         """
