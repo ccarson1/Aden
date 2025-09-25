@@ -120,6 +120,7 @@ class Player:
         self.pad_bottom = 20
         self.pad_left = 30
         self.pad_right = 30
+        self.moving = False  # Is the player currently moving?
 
         # Rect used for portal/collider detection (sync with hitbox)
         self.rect = self.get_hitbox()

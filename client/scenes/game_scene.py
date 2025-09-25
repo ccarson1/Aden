@@ -32,6 +32,8 @@ class GameScene:
         # Dictionary of other players received from the server
         self.players = self.client.players
 
+        self.frozen = False
+
         # Time interval for autosaving player state (currently unused)
         self.SAVE_INTERVAL = 30
 
@@ -145,19 +147,24 @@ class GameScene:
         Check if the local player is colliding with any portals on the current map.
         If so, send a portal enter request to the server.
         """
-        if not self.current_map:
+        if not self.current_map or self.frozen:
             return
 
         portal = self.current_map.get_portal_at(self.local_player.rect)
         if portal:
-            print(f"[INFO] Portal triggered: {portal.target_map} at ({portal.spawn_x},{portal.spawn_y})")
-            self.client.send_portal_enter(
-                portal.target_map,
-                portal.spawn_x,
-                portal.spawn_y,
-                self.scene_manager.server_info["ip"],
-                self.scene_manager.server_info["port"]
-            )
+            print(f"[INFO] Portal triggered: {portal.target_map}")
+            self.frozen = True  # freeze player immediately
+            self.scene_manager.start_fade("game", portal)  #
+            
+        # if portal:
+        #     print(f"[INFO] Portal triggered: {portal.target_map} at ({portal.spawn_x},{portal.spawn_y})")
+        #     self.client.send_portal_enter(
+        #         portal.target_map,
+        #         portal.spawn_x,
+        #         portal.spawn_y,
+        #         self.scene_manager.server_info["ip"],
+        #         self.scene_manager.server_info["port"]
+        #     )
 
     def update(self, dt):
         """
@@ -167,6 +174,11 @@ class GameScene:
         Args:
             dt (float): Time delta since last frame (seconds)
         """
+        if self.frozen:  # freeze player + stop anims during fade
+            if self.current_map:
+                self.current_map.update(dt)  # still update animated tiles
+            return
+        
         input_state = self.capture_input()
         moving = self.apply_input(input_state, dt)
 
@@ -176,6 +188,13 @@ class GameScene:
 
         # Check for portal collisions
         self.check_portals()
+
+        # Update remote players animations
+        for p in self.players.values():
+            if p.current_map == self.local_player.current_map:
+                if p.moving:
+                    p.update_animation(dt, moving=True)
+                    #p.update(dt)  # <-- make sure Player.update(dt) advances animation
 
         # Send updated position and movement state to server
         self.client.send_move(

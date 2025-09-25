@@ -90,14 +90,17 @@ class Client:
                         self.local_player.x = message["x"]
                         self.local_player.y = message["y"]
 
-                        # Actually load the map in the GameScene
-                        new_map = game_map.GameMap(f"assets/maps/{message['map']}.tmx")
-                        self.scene_manager.scenes["game"].current_map = new_map
+                        # Freeze the player so they can’t move during fade
+                        self.scene_manager.current_scene.frozen = True
 
-                        # Ensure scene is switched to game
+                        # Start fade-out (don’t load the map yet)
                         self.scene_manager.start_fade("game")
 
-                        print(f"[INFO] Map switched to {message['map']} at ({message['x']}, {message['y']})")
+                        # After fade completes, SceneManager.on_map_data_received will load the TMX
+                        # Server must send map data or confirm map_name
+                        self.scene_manager.on_map_data_received(message["map"])
+
+                        print(f"[INFO] Map switch requested: {message['map']} at ({message['x']}, {message['y']})")
 
                 except socket.timeout:
                     continue
