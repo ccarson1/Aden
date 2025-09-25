@@ -26,8 +26,8 @@ while running:
             running = False
         scene_manager.current_scene.handle_event(event)
 
-    scene_manager.current_scene.update(dt)
-    scene_manager.current_scene.draw(screen)
+    scene_manager.update(dt)
+    scene_manager.draw(screen)
     pygame.display.flip()
 
 pygame.quit()

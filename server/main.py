@@ -212,6 +212,22 @@ def start_server():
                         username = auth_db.get_username_from_token(token)
                         auth_db.save_player_state(pid, username, msg["x"], msg["y"], msg["direction"], msg['current_map'])
 
+                    if msg["type"] == "portal_enter":
+                        player.current_map = msg["target_map"]
+                        player.x = msg["spawn_x"]
+                        player.y = msg["spawn_y"]
+
+                        # Confirm back to client
+                        sock.sendto(
+                            msgpack.packb({
+                                "type": "map_switch",
+                                "map": player.current_map,
+                                "x": player.x,
+                                "y": player.y
+                            }, use_bin_type=True),
+                            addr
+                        )
+
         except socket.timeout:
             continue
         except OSError as e:

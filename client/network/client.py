@@ -2,6 +2,7 @@
 import socket, threading, msgpack
 import pygame
 from ..entities.player import Player
+from ..entities import game_map
 
 class Client:
     def __init__(self, player_sprite_path, frame_w=64, frame_h=64):
@@ -13,6 +14,7 @@ class Client:
         self.player_sprite_path = player_sprite_path
         self.frame_w = frame_w
         self.frame_h = frame_h
+        self.scene_manager = None 
 
     def connect(self, server_ip, server_port, token):
         self.token = token 
@@ -37,24 +39,17 @@ class Client:
                     if message["type"] == "assign_id":
                         self.local_player_id = message["player_id"]
                         self.local_player.id = self.local_player_id
-
-                        # Load initial position from server
                         if "player_data" in message:
                             data = message["player_data"]
                             self.local_player.x = data.get("x", 100)
                             self.local_player.y = data.get("y", 100)
                             self.local_player.direction = data.get("direction", "down")
-
-                            # NEW: load map
                             if "current_map" in data:
-                                print(f"[INFO] Loading map: {data['current_map']}")
                                 self.local_player.current_map = data["current_map"]
+                                # Tell GameScene to load it
+                                if hasattr(self.scene_manager.scenes["game"], "load_map"):
+                                    self.scene_manager.scenes["game"].load_map(data["current_map"])
 
-                                # Instead of trying to use scene_manager here,
-                                # just store it locally in the client.
-                                self.current_map = data["current_map"]
-
-                        print(f"[INFO] Assigned player ID: {self.local_player_id} at ({self.local_player.x}, {self.local_player.y})")
 
                     elif message["type"] == "update":
                         for p in message["players"]:
@@ -89,6 +84,21 @@ class Client:
                             print(f"[CLIENT] Removing disconnected player {pid}")
                             del self.players[pid]
 
+                    elif message["type"] == "map_switch":
+                        # Update local player authoritative state
+                        self.local_player.current_map = message["map"]
+                        self.local_player.x = message["x"]
+                        self.local_player.y = message["y"]
+
+                        # Actually load the map in the GameScene
+                        new_map = game_map.GameMap(f"assets/maps/{message['map']}.tmx")
+                        self.scene_manager.scenes["game"].current_map = new_map
+
+                        # Ensure scene is switched to game
+                        self.scene_manager.start_fade("game")
+
+                        print(f"[INFO] Map switched to {message['map']} at ({message['x']}, {message['y']})")
+
                 except socket.timeout:
                     continue
                 except Exception as e:
@@ -96,6 +106,16 @@ class Client:
                     break
 
         threading.Thread(target=listen_server, daemon=True).start()
+
+    def send_portal_enter(self, target_map, spawn_x, spawn_y, server_ip, server_port):
+        msg = {
+            "type": "portal_enter",
+            "target_map": target_map,
+            "spawn_x": spawn_x,
+            "spawn_y": spawn_y,
+            "token": self.token
+        }
+        self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))
 
     def send_move(self, x, y, direction, moving, server_ip, server_port):
         if not self.token:
@@ -110,3 +130,6 @@ class Client:
             "token": self.token
         }
         self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))
+
+    def set_scene_manager(self, scene_manager):
+        self.scene_manager = scene_manager

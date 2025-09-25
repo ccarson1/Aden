@@ -110,7 +110,7 @@ class Player:
         self.frame_w = frame_w
         self.frame_h = frame_h
         self.current_map = None
-
+        self.speed = 100
         self.MOVE_SPEED = 100  # pixels per second
         self.ANIMATION_SPEED = 0.15  # seconds per frame
         self.show_hitbox = True
