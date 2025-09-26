@@ -18,6 +18,8 @@ class GameMap:
         self.tmx_data = load_pygame(tmx_file, pixelalpha=True)
         self.opaque_alpha = 180  # default semi-transparent
         self.opaque_tiles = []   # store rects of opaque tiles
+        # Store light tiles
+        self.light_tiles = []
 
         # --- Tile layers for drawing & animation ---
         self.layers = [
@@ -38,6 +40,23 @@ class GameMap:
                         self.tmx_data.tileheight
                     )
                     self.opaque_tiles.append(rect)
+            if hasattr(layer, "tiles"):
+                for x, y, tile in layer.tiles:
+                    # Get the GID at this position in the original pytmx layer
+                    gid = layer.layer.data[y][x]  # TMX layer stores GID in data[y][x]
+                    if gid == 0:
+                        continue
+                    props = self.tmx_data.get_tile_properties_by_gid(gid) or {}
+                    radius = props.get("light_radius")
+                    if radius:
+                        rect = pygame.Rect(
+                            x * self.tmx_data.tilewidth,
+                            y * self.tmx_data.tileheight,
+                            self.tmx_data.tilewidth,
+                            self.tmx_data.tileheight
+                        )
+                        self.light_tiles.append((rect, int(radius)))
+                        print(f"Light tile at ({x},{y}) with radius {radius}")  # debug
 
         # --- Colliders ---
         self.colliders = []

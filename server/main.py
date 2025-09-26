@@ -118,6 +118,7 @@ def broadcast():
     while running:
         time.sleep(config.UPDATE_RATE)
         state = []
+        world_time = time.strftime("%H:%M:%S", time.gmtime())  # UTC clock
         with lock:
             for p in clients.values():
                 state.append({
@@ -134,7 +135,7 @@ def broadcast():
             for p in clients.values():
                 try:
                     sock.sendto(
-                        msgpack.packb({"type": "update", "players": state}, use_bin_type=True),
+                        msgpack.packb({"type": "update", "players": state, "world_time": world_time}, use_bin_type=True),
                         (p.addr[0], p.addr[1])
                     )
                 except Exception:
@@ -150,15 +151,24 @@ def autosave_loop():
                     continue
 
                 username = get_username_from_pid(pid)
-                current_map = getattr(player, "current_map", "DefaultMap") or "DefaultMap"
-                direction = getattr(player, "direction", "down") or "down"
+
+                # Only save fields that actually exist
+                x = getattr(player, "x", None)
+                y = getattr(player, "y", None)
+                direction = getattr(player, "direction", None)
+                current_map = getattr(player, "current_map", None)
+
+                # Skip save if essential fields are missing
+                if x is None or y is None or direction is None or current_map is None:
+                    print(f"[AUTOSAVE] Skipping player {pid} because some fields are missing")
+                    continue
 
                 auth_db.save_player_state(
                     pid,
                     username,
-                    player.x,
-                    player.y,
-                    getattr(player, "direction", "down"),
+                    x,
+                    y,
+                    direction,
                     current_map
                 )
                 
@@ -169,10 +179,14 @@ def autosave_loop():
                 try:
                     msg = {"type": "save_confirm", "message": "Your game has been saved."}
                     sock.sendto(msgpack.packb(msg, use_bin_type=True), (player.addr[0], player.addr[1]))
+                    print(f"[AUTOSAVE] Checked {len(clients)} players")
                 except Exception as e:
                     print(f"[ERROR] Failed to notify player {pid}: {e}")
 
-            print(f"[AUTOSAVE] Saved {len(clients)} players")
+            
+
+
+            
 
 
 

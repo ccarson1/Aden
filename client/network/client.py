@@ -3,6 +3,9 @@ import socket, threading, msgpack
 import pygame
 from ..entities.player import Player
 from ..entities import game_map
+from ..ui import ToastMessage
+import config
+
 
 class Client:
     def __init__(self, player_sprite_path, frame_w=64, frame_h=64):
@@ -14,7 +17,9 @@ class Client:
         self.player_sprite_path = player_sprite_path
         self.frame_w = frame_w
         self.frame_h = frame_h
-        self.scene_manager = None 
+        self.scene_manager = None
+        
+
 
     def connect(self, server_ip, server_port, token):
         self.token = token 
@@ -59,6 +64,7 @@ class Client:
                                 self.local_player.direction = p["direction"]
                                 self.local_player.moving = p["moving"]
                                 self.local_player.current_map = p.get("current_map", self.local_player.current_map)
+                                self.scene_manager.scenes["game"].server_time = message["world_time"]
                                 
                             else:
                                 if p["id"] not in self.players:
@@ -104,7 +110,10 @@ class Client:
 
                     elif message["type"] == "save_confirm":
                         print(f"[SERVER] {message['message']}")
-                        # optionally show a UI popup or toast
+                        if self.scene_manager and "game" in self.scene_manager.scenes:
+                            game_scene = self.scene_manager.scenes["game"]
+                            if hasattr(game_scene, "add_toast"):
+                                game_scene.add_toast(message["message"])
 
                 except socket.timeout:
                     continue
