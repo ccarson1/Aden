@@ -9,6 +9,7 @@ class Player:
         self.direction = "down"
         self.moving = False
         self.current_map = None  # default map
+        self.needs_save = False
 
 
 

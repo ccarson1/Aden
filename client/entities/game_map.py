@@ -1,74 +1,4 @@
-# # server/entities/game_map.py or client/maps/game_map.py
-# import pygame
-# from assets.maps.map_loader import TileLayer, load_pygame
-# from pytmx import TiledTileLayer
 
-# class Portal:
-#     def __init__(self, rect, target_map, spawn_x, spawn_y):
-#         self.rect = rect
-#         self.target_map = target_map
-#         self.spawn_x = spawn_x
-#         self.spawn_y = spawn_y
-
-# class GameMap:
-#     def __init__(self, tmx_file):
-#         self.tmx_data = load_pygame(tmx_file, pixelalpha=True)
-
-#         # --- Tile layers for drawing & animation ---
-#         self.layers = [
-#             TileLayer(self.tmx_data, i)
-#             for i, layer in enumerate(self.tmx_data.layers)
-#             if isinstance(layer, TiledTileLayer)
-#         ]
-
-#         # --- Colliders ---
-#         self.colliders = []
-#         for layer in self.tmx_data.layers:
-#             if layer.name.lower() == "collision":
-#                 for x, y, gid in layer:
-#                     if gid != 0:
-#                         rect = pygame.Rect(
-#                             x * self.tmx_data.tilewidth,
-#                             y * self.tmx_data.tileheight,
-#                             self.tmx_data.tilewidth,
-#                             self.tmx_data.tileheight
-#                         )
-#                         self.colliders.append(rect)
-
-#         # --- Portals ---
-#         self.portals = []
-#         for layer in self.tmx_data.layers:
-#             if layer.name.lower() == "portal":
-#                 for x, y, gid in layer:
-#                     if gid != 0:
-#                         props = self.tmx_data.get_tile_properties_by_gid(gid) or {}
-#                         target_map = props.get("target_map")
-#                         spawn_x = props.get("spawn_x", 0)
-#                         spawn_y = props.get("spawn_y", 0)
-#                         rect = pygame.Rect(
-#                             x * self.tmx_data.tilewidth,
-#                             y * self.tmx_data.tileheight,
-#                             self.tmx_data.tilewidth,
-#                             self.tmx_data.tileheight
-#                         )
-#                         if target_map:
-#                             self.portals.append(Portal(rect, target_map, spawn_x, spawn_y))
-
-#         # Optional default player start
-#         self.player_start = (0, 0)
-#         for layer in self.tmx_data.layers:
-#             if layer.name.lower() == "player_start":
-#                 for obj in layer:
-#                     self.player_start = (obj.x, obj.y)
-#                     break
-
-#     def update(self, dt):
-#         for layer in self.layers:
-#             layer.update(dt)
-
-#     def draw(self, surface):
-#         for layer in self.layers:
-#             layer.draw(surface)
 
 # client/entities/game_map.py
 import pygame
@@ -81,17 +11,33 @@ class Portal:
         self.target_map = target_map
         self.spawn_x = spawn_x
         self.spawn_y = spawn_y
+        
 
 class GameMap:
     def __init__(self, tmx_file):
         self.tmx_data = load_pygame(tmx_file, pixelalpha=True)
+        self.opaque_alpha = 180  # default semi-transparent
+        self.opaque_tiles = []   # store rects of opaque tiles
 
         # --- Tile layers for drawing & animation ---
         self.layers = [
             TileLayer(self.tmx_data, i)
             for i, layer in enumerate(self.tmx_data.layers)
-            if isinstance(layer, TiledTileLayer)
+            if hasattr(layer, "tiles")  # include all layers that have tiles
         ]
+
+        # Track opaque tile rects for collision fading
+        self.opaque_tiles = []
+        for layer in self.layers:
+            if layer.layer.name.lower() == "foreground_opaque":
+                for x, y, _ in layer.tiles:
+                    rect = pygame.Rect(
+                        x * self.tmx_data.tilewidth,
+                        y * self.tmx_data.tileheight,
+                        self.tmx_data.tilewidth,
+                        self.tmx_data.tileheight
+                    )
+                    self.opaque_tiles.append(rect)
 
         # --- Colliders ---
         self.colliders = []
@@ -141,9 +87,53 @@ class GameMap:
         for layer in self.layers:
             layer.update(dt)
 
-    def draw(self, surface, offset=(0, 0)):
+    # def draw(self, surface, offset=(0, 0)):
+    #     for layer in self.layers:
+            
+    #         layer.draw(surface, offset)
+
+    def draw(self, surface, offset=(0,0), alpha=None, draw_only=None):
+        ox, oy = offset
+
+        draw_only = draw_only or []  # list of layer types to draw, empty = draw all
+
+        # Separate layers
+        background_layers = []
+        decoration_layers = []
+        foreground_layers = []
+        foreground_opaque_layers = []
+
         for layer in self.layers:
-            layer.draw(surface, offset)
+            name = layer.layer.name.lower()
+            if name in ["background", "ground"]:
+                background_layers.append(layer)
+            elif name in ["decoration", "objects"]:
+                decoration_layers.append(layer)
+            elif name in ["foreground", "above"]:
+                foreground_layers.append(layer)
+            elif name == "foreground_opaque":
+                foreground_opaque_layers.append(layer)
+            else:
+                decoration_layers.append(layer)
+
+        # Draw only requested layers
+        if not draw_only or "background" in draw_only or "ground" in draw_only:
+            for layer in background_layers:
+                layer.draw(surface, offset, alpha)
+
+        if not draw_only or "decoration" in draw_only or "objects" in draw_only:
+            for layer in decoration_layers:
+                layer.draw(surface, offset, alpha)
+
+        if not draw_only or "foreground" in draw_only or "above" in draw_only:
+            for layer in foreground_layers:
+                layer.draw(surface, offset, alpha)
+
+        if not draw_only or "foreground_opaque" in draw_only:
+            for layer in foreground_opaque_layers:
+                layer.draw(surface, offset, alpha)
+
+
 
     def get_portal_at(self, player_rect):
         """

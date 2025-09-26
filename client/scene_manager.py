@@ -41,15 +41,6 @@ class SceneManager:
         self.fade_alpha = 0
         self.fade_speed = 400  # alpha per second
 
-    # def start_fade(self, scene_name):
-    #     """Begin fade-out before switching to another scene."""
-    #     if scene_name in self.scenes:
-    #         self.next_scene = self.scenes[scene_name]
-    #         self.fading_out = True
-    #         self.fading_in = False
-    #         self.fade_alpha = 0
-    #     else:
-    #         print(f"[WARN] Tried to fade to unknown scene '{scene_name}'")
 
     def start_fade(self, scene_name, portal=None):
         if scene_name in self.scenes:

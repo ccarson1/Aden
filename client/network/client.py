@@ -102,6 +102,10 @@ class Client:
 
                         print(f"[INFO] Map switch requested: {message['map']} at ({message['x']}, {message['y']})")
 
+                    elif message["type"] == "save_confirm":
+                        print(f"[SERVER] {message['message']}")
+                        # optionally show a UI popup or toast
+
                 except socket.timeout:
                     continue
                 except Exception as e:

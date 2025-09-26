@@ -215,6 +215,18 @@ class GameScene:
             map_height = self.current_map.tmx_data.height * self.current_map.tmx_data.tileheight
             self.camera.update(self.local_player, map_width, map_height)
 
+        if self.current_map and hasattr(self.current_map, "opaque_tiles"):
+            colliding = any(self.local_player.rect.colliderect(r) for r in self.current_map.opaque_tiles)
+
+            # Target alpha: 0 when colliding, 180 when not colliding
+            target_alpha = 150 if colliding else 255
+            fade_speed = 300 * dt  # alpha per second
+
+            if self.current_map.opaque_alpha < target_alpha:
+                self.current_map.opaque_alpha = min(target_alpha, self.current_map.opaque_alpha + fade_speed)
+            elif self.current_map.opaque_alpha > target_alpha:
+                self.current_map.opaque_alpha = max(target_alpha, self.current_map.opaque_alpha - fade_speed)
+
     def load_map(self, map_name):
         """
         Load a Tiled map from the assets directory.
@@ -245,7 +257,8 @@ class GameScene:
         temp_surface = pygame.Surface((cam_rect.width, cam_rect.height), pygame.SRCALPHA)
 
         # --- Step 2: Draw map with camera offset ---
-        self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y))
+        self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
+                      draw_only=["background", "decoration"])
 
         # --- Step 3: Draw remote players with offset ---
         for p in self.players.values():
@@ -256,6 +269,17 @@ class GameScene:
         # --- Step 4: Draw local player ---
         frame = self.local_player.frames[self.local_player.direction][self.local_player.anim_frame]
         temp_surface.blit(frame, (self.local_player.x - cam_rect.x, self.local_player.y - cam_rect.y))
+
+        self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
+                      draw_only=["foreground"])
+
+        # --- Step 6: Draw foreground_opaque with dynamic alpha ---
+        self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
+                            draw_only=["foreground_opaque"],
+                            alpha=self.current_map.opaque_alpha)
+
+        
+        
 
         # --- Step 5: Zoom ---
         if self.camera.zoom != 1.0:

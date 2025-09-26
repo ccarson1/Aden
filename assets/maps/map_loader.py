@@ -40,12 +40,18 @@ class TileLayer:
             if isinstance(tile, AnimatedTile):
                 tile.update(dt)
 
-    def draw(self, surface, offset=(0, 0)):
+    def draw(self, surface, offset=(0, 0), alpha=None):
         ox, oy = offset
         for x, y, tile in self.tiles:
             draw_x = x * self.tmx_data.tilewidth + ox
             draw_y = y * self.tmx_data.tileheight + oy
             if isinstance(tile, AnimatedTile):
-                surface.blit(tile.image, (draw_x, draw_y))
+                img = tile.image
             else:
-                surface.blit(tile, (draw_x, draw_y))
+                img = tile
+
+            if img:
+                img_copy = img.copy()
+                if alpha is not None:
+                    img_copy.set_alpha(alpha)
+                surface.blit(img_copy, (draw_x, draw_y))

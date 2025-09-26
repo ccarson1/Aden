@@ -16,6 +16,7 @@ lock = threading.Lock()
 token_cache = {}
 TOKEN_CACHE_TTL = 30  # seconds
 DB_REFRESH_INTERVAL = 60 
+SAVE_INTERVAL = 30 
 
 sock = None
 
@@ -27,6 +28,15 @@ TOKEN_TIMEOUT = 5  # seconds to wait for auth server response
 
 
 # ---------------- Helper Functions ----------------
+
+def get_username_from_pid(pid):
+    """
+    Given a player ID, return the username associated with that player.
+    """
+    for token, id in tokens.items():
+        if id == pid:
+            return auth_db.get_username_from_token(token)
+    return None
 
 def get_new_pid():
     global player_counter
@@ -130,6 +140,42 @@ def broadcast():
                 except Exception:
                     continue
 
+def autosave_loop():
+    global running
+    while running:
+        time.sleep(SAVE_INTERVAL)
+        with lock:
+            for pid, player in clients.items():
+                if not getattr(player, "needs_save", False):
+                    continue
+
+                username = get_username_from_pid(pid)
+                current_map = getattr(player, "current_map", "DefaultMap") or "DefaultMap"
+                direction = getattr(player, "direction", "down") or "down"
+
+                auth_db.save_player_state(
+                    pid,
+                    username,
+                    player.x,
+                    player.y,
+                    getattr(player, "direction", "down"),
+                    current_map
+                )
+                
+                # Reset flag
+                player.needs_save = False  
+
+                # Notify client
+                try:
+                    msg = {"type": "save_confirm", "message": "Your game has been saved."}
+                    sock.sendto(msgpack.packb(msg, use_bin_type=True), (player.addr[0], player.addr[1]))
+                except Exception as e:
+                    print(f"[ERROR] Failed to notify player {pid}: {e}")
+
+            print(f"[AUTOSAVE] Saved {len(clients)} players")
+
+
+
 
 # ---------------- Main Server Loop ----------------
 
@@ -145,6 +191,7 @@ def start_server():
     threading.Thread(target=cleanup_inactive, daemon=True).start()
     threading.Thread(target=broadcast, daemon=True).start()
     threading.Thread(target=refresh_active_tokens, daemon=True).start()
+    threading.Thread(target=autosave_loop, daemon=True).start() 
 
     while running:
         try:
@@ -177,9 +224,7 @@ def start_server():
                         y=saved_data.get("y", 100)
                     )
                     clients[pid].direction = saved_data.get("direction", "down")
-                    clients[pid].addr = addr
                     clients[pid].current_map = saved_data.get("current_map", "DefaultMap")
-                    last_seen[pid] = time.time()
 
                     # Send assigned ID + initial state to client
                     sock.sendto(
@@ -202,6 +247,7 @@ def start_server():
                         player.y = msg["y"]
                         player.direction = msg.get("direction", player.direction)
                         player.moving = msg.get("moving", False)
+                        player.needs_save = True 
                         
                         # Update current_map from client
                         if "current_map" in msg:
