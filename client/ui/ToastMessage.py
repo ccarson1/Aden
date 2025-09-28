@@ -27,7 +27,7 @@ class ToastMessage:
             text_surface = self.font.render(text, True, self.text_color)
 
             # Background rectangle
-            rect = text_surface.get_rect(topright=(self.screen.get_width() - self.padding, self.padding + i * (text_surface.get_height() + 5)))
+            rect = text_surface.get_rect(topleft=(self.padding, self.padding + i * (text_surface.get_height() + 5)))
             bg_surface = pygame.Surface((rect.width + self.padding*2, rect.height + self.padding//2), pygame.SRCALPHA)
             bg_surface.fill(self.bg_color)
             self.screen.blit(bg_surface, (rect.x - self.padding, rect.y - self.padding//4))

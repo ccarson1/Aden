@@ -4,14 +4,22 @@
   <image source="../images/CL_Buildings.png" width="560" height="656"/>
   <tile id="743">
    <properties>
-   <property name="spawn_x" value="270"/>
-    <property name="spawn_y" value="350"/>
     <property name="target_map" value="Test_01"/>
    </properties>
   </tile>
   <tile id="744">
    <properties>
     <property name="target_map" value="home_interior_01"/>
+   </properties>
+  </tile>
+  <tile id="1195">
+   <properties>
+    <property name="light_radius" type="int" value="128"/>
+   </properties>
+  </tile>
+  <tile id="1230">
+   <properties>
+    <property name="light_radius" type="int" value="128"/>
    </properties>
   </tile>
  </tileset>

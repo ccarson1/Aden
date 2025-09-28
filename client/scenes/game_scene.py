@@ -8,6 +8,7 @@ from ..entities import game_map
 from client.entities.camera import Camera
 import config
 import random
+from client.graphics.weather import Rain
 
 class GameScene:
     """
@@ -54,6 +55,7 @@ class GameScene:
         self.camera = Camera(config.WIDTH, config.HEIGHT, zoom=1.0)
         self.server_time = "00:00:00"
         self.world_time = "00:00"
+        self.rain = Rain(config.WIDTH, config.HEIGHT, density=350, fall_speed=7, wind=1, drop_length=7, thickness=1, overlay_color=(50, 50, 60), overlay_alpha=120)
 
     def add_toast(self, text, duration=2.0):
         self.toasts.append({
@@ -361,6 +363,8 @@ class GameScene:
         self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
                             draw_only=["foreground_opaque"],
                             alpha=self.current_map.opaque_alpha)
+        
+        
 
         
         
@@ -411,32 +415,18 @@ class GameScene:
             # Apply overlay
             surface.blit(overlay, (0, 0))
 
+        # Update + draw rain
+        # self.rain.update()
+        # self.rain.draw(surface)
 
-        # # Draw light radii
-        # for rect, radius in getattr(self.current_map, "light_tiles", []):
-        #     light_surf = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
 
-        #     # Radial gradient for fire-like light
-        #     for r in range(radius, 0, -1):
-        #         # Quadratic falloff for smooth transparency
-        #         alpha = int((r / radius) ** 2 * 80)  # much lower than before (max 80 instead of 180)
-        #         color = (255, 140 + int(115*(r/radius)), 0, alpha)  # warm orange-yellow gradient
-        #         pygame.draw.circle(light_surf, color, (radius, radius), r)
-
-        #     # Draw with additive blending
-        #     surface.blit(
-        #         light_surf,
-        #         (rect.centerx - radius - ox, rect.centery - radius - oy),
-        #         special_flags=pygame.BLEND_ADD
-        #         )
-        
 
 
         # draw toasts in top-right
         y = 10
         for toast in self.toasts:
             surf = self.font.render(toast["text"], True, (255, 255, 255))
-            rect = surf.get_rect(topright=(surface.get_width() - 10, y))
+            rect = surf.get_rect(topleft=(10, y))
             surface.blit(surf, rect)
             y += rect.height + 5
 
