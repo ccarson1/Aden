@@ -204,6 +204,9 @@ def interpolate_player(player, dt):
     # Update previous map for next tick
     player.prev_map = getattr(player, "current_map", player.prev_map)
 
+
+
+
 def autosave_loop():
     global running
     while running:

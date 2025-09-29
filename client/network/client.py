@@ -69,13 +69,18 @@ class Client:
                                 self.scene_manager.scenes["game"].server_time = message["world_time"]
                             else:
                                 if p["id"] not in self.players:
-                                    self.players[p["id"]] = Player(
-                                        p["id"], p["name"],
+                                    player = Player(
+                                        p["id"], 
+                                        p["name"],
                                         pygame.image.load(self.player_sprite_path).convert_alpha(),
                                         p.get("frame_w", self.frame_w),
                                         p.get("frame_h", self.frame_h),
-                                        p["x"], p["y"],
+                                        p["x"], 
+                                        p["y"]
                                     )
+                                    player.render_x = p["x"]
+                                    player.render_y = p["y"]
+                                    self.players[p["id"]] = player
                                 else:
                                     player = self.players[p["id"]]
                                     # Update interpolation targets

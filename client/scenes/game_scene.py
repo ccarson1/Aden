@@ -256,6 +256,36 @@ class GameScene:
         player.render_x = player.prev_x + (player.target_x - player.prev_x) * t
         player.render_y = player.prev_y + (player.target_y - player.prev_y) * t
 
+    def update_remote_players(self, dt):
+        """
+        Smoothly interpolate all remote players toward their server-reported target positions.
+        """
+        for player in self.client.players.values():
+            # Initialize render positions if they don't exist
+            if not hasattr(player, "render_x"):
+                player.render_x = player.x
+                player.render_y = player.y
+
+            # Initialize target positions if missing
+            if not hasattr(player, "target_x"):
+                player.target_x = player.x
+            if not hasattr(player, "target_y"):
+                player.target_y = player.y
+
+            # Interpolation speed (units per second)
+            speed = getattr(player, "speed", 200.0)
+
+            # Compute distance to target
+            dx = player.target_x - player.render_x
+            dy = player.target_y - player.render_y
+            dist = (dx**2 + dy**2)**0.5
+
+            if dist > 0:
+                move_dist = min(dist, speed * dt)
+                player.render_x += dx / dist * move_dist
+                player.render_y += dy / dist * move_dist
+
+
 
     def update(self, dt):
         if self.frozen:
@@ -289,11 +319,10 @@ class GameScene:
                 self.local_player.y += dy * correction_factor
 
         # --- Remote players ---
+        self.update_remote_players(dt)  # interpolate all remote players
         for p in self.players.values():
-            if p.current_map == self.local_player.current_map:
-                self.update_render_position(p)
-                if p.moving:
-                    p.update_animation(dt, moving=True)
+            if p.current_map == self.local_player.current_map and p.moving:
+                p.update_animation(dt, moving=True)
 
         self.client.send_move(
             self.local_player.x,
@@ -378,8 +407,8 @@ class GameScene:
 
             frame = p.frames[p.direction][p.anim_frame]
 
-            draw_x = p.x  # use server's interpolated x
-            draw_y = p.y
+            draw_x = getattr(p, "render_x", p.x)
+            draw_y = getattr(p, "render_y", p.y)
 
             temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
 
