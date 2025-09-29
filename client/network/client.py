@@ -56,6 +56,23 @@ class Client:
                                 if hasattr(self.scene_manager.scenes["game"], "load_map"):
                                     self.scene_manager.scenes["game"].load_map(data["current_map"])
 
+                        if "players" in message:
+                            for p in message["players"]:
+                                if p["id"] != self.local_player_id and p["id"] not in self.players:
+                                    player = Player(
+                                        p["id"],
+                                        p["name"],
+                                        pygame.image.load(self.player_sprite_path).convert_alpha(),
+                                        p.get("frame_w", self.frame_w),
+                                        p.get("frame_h", self.frame_h),
+                                        p["x"],
+                                        p["y"]
+                                    )
+                                    player.render_x = p["x"]
+                                    player.render_y = p["y"]
+                                    player.current_map = p.get("current_map", "DefaultMap")
+                                    self.players[p["id"]] = player
+
 
                     elif message["type"] == "update":
                         for p in message["players"]:
@@ -95,7 +112,7 @@ class Client:
                                         # Normal interpolation
                                         player.prev_x = player.render_x
                                         player.prev_y = player.render_y
-                                        
+
                                     # Update interpolation targets
                                     player.prev_x = player.render_x
                                     player.prev_y = player.render_y
