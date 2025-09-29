@@ -5,6 +5,7 @@ from ..entities.player import Player
 from ..entities import game_map
 from ..ui import ToastMessage
 import config
+import time
 
 
 class Client:
@@ -78,8 +79,14 @@ class Client:
                                     
                                 else:
                                     player = self.players[p["id"]]
-                                    player.x = p["x"]
-                                    player.y = p["y"]
+
+                                    # Update interpolation state
+                                    player.prev_x = player.render_x
+                                    player.prev_y = player.render_y
+                                    player.target_x = p["x"]
+                                    player.target_y = p["y"]
+                                    player.last_update_time = time.time()
+
                                     player.direction = p["direction"]
                                     player.moving = p["moving"]
                                     player.current_map = p.get("current_map", player.current_map)

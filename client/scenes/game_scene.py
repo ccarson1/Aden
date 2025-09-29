@@ -246,6 +246,15 @@ class GameScene:
 
         except Exception:
             return 0
+        
+    def update_render_position(self, player, server_rate=20):
+        now = time.time()
+        elapsed = now - player.last_update_time
+        interval = 1.0 / server_rate
+        t = min(1.0, elapsed / interval)
+
+        player.render_x = player.prev_x + (player.target_x - player.prev_x) * t
+        player.render_y = player.prev_y + (player.target_y - player.prev_y) * t
 
 
     def update(self, dt):
@@ -347,10 +356,25 @@ class GameScene:
                       draw_only=["background", "decoration"])
 
         # --- Step 3: Draw remote players with offset ---
+        # for p in self.players.values():
+        #     if p.current_map == self.local_player.current_map:
+        #         frame = p.frames[p.direction][p.anim_frame]
+        #         temp_surface.blit(frame, (p.x - cam_rect.x, p.y - cam_rect.y))
+
         for p in self.players.values():
-            if p.current_map == self.local_player.current_map:
-                frame = p.frames[p.direction][p.anim_frame]
-                temp_surface.blit(frame, (p.x - cam_rect.x, p.y - cam_rect.y))
+            if p.current_map != self.local_player.current_map:
+                continue  # skip players in other maps
+
+            # Interpolate remote players
+            if p.id != self.local_player.id:
+                self.update_render_position(p)
+
+            frame = p.frames[p.direction][p.anim_frame]
+
+            draw_x = p.x if p.id == self.local_player.id else p.render_x
+            draw_y = p.y if p.id == self.local_player.id else p.render_y
+
+            temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
 
         # --- Step 4: Draw local player ---
         frame = self.local_player.frames[self.local_player.direction][self.local_player.anim_frame]

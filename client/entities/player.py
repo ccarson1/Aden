@@ -115,6 +115,15 @@ class Player:
         self.ANIMATION_SPEED = 0.15  # seconds per frame
         self.show_hitbox = True
 
+        # Interpolation state
+        self.prev_x = x
+        self.prev_y = y
+        self.target_x = x
+        self.target_y = y
+        self.render_x = x
+        self.render_y = y
+        self.last_update_time = 0.0
+
         # Default padding for collision
         self.pad_top = 40
         self.pad_bottom = 20

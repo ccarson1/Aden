@@ -11,6 +11,13 @@ class Player:
         self.current_map = None  # default map
         self.needs_save = False
 
+        # Interpolation state
+        self.prev_x = x
+        self.prev_y = y
+        self.target_x = x
+        self.target_y = y
+        self.last_update_time = 0.0
+
 
 
 class NPC:
