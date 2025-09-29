@@ -80,9 +80,22 @@ class Client:
                                     )
                                     player.render_x = p["x"]
                                     player.render_y = p["y"]
+                                    player.current_map = p.get("current_map", "DefaultMap")
                                     self.players[p["id"]] = player
                                 else:
                                     player = self.players[p["id"]]
+
+                                    # **If map changed, snap immediately**
+                                    if player.current_map != p.get("current_map", player.current_map):
+                                        player.render_x = p["x"]
+                                        player.render_y = p["y"]
+                                        player.prev_x = p["x"]
+                                        player.prev_y = p["y"]
+                                    else:
+                                        # Normal interpolation
+                                        player.prev_x = player.render_x
+                                        player.prev_y = player.render_y
+                                        
                                     # Update interpolation targets
                                     player.prev_x = player.render_x
                                     player.prev_y = player.render_y
