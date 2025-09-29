@@ -115,23 +115,41 @@ def cleanup_inactive():
 
 def broadcast():
     global running
+    last_broadcast = time.time()
+    
     while running:
-        time.sleep(config.UPDATE_RATE)
+        now = time.time()
+        dt = now - last_broadcast
+        last_broadcast = now
+
+        world_time = time.strftime("%H:%M:%S", time.gmtime())
         state = []
-        world_time = time.strftime("%H:%M:%S", time.gmtime())  # UTC clock
+
         with lock:
+            # Interpolate positions first using real dt
+            for p in clients.values():
+                interpolate_player(p, dt)
+
+            # Build state packet
             for p in clients.values():
                 state.append({
                     "id": p.id,
                     "name": p.name,
                     "x": p.x,
                     "y": p.y,
+                    "prev_x": p.prev_x,
+                    "prev_y": p.prev_y,
+                    "target_x": p.target_x,
+                    "target_y": p.target_y,
                     "direction": getattr(p, "direction", "down"),
                     "moving": getattr(p, "moving", False),
                     "frame_w": getattr(p, "frame_w", 64),
                     "frame_h": getattr(p, "frame_h", 64),
-                    "current_map": getattr(p, "current_map", "DefaultMap")
+                    "current_map": getattr(p, "current_map", "DefaultMap"),
+                    "timestamp": p.last_update_time
                 })
+
+            # Broadcast to all clients
             for p in clients.values():
                 try:
                     sock.sendto(
@@ -140,6 +158,51 @@ def broadcast():
                     )
                 except Exception:
                     continue
+
+        # Sleep until next update
+        time.sleep(config.UPDATE_RATE)
+
+def interpolate_player(player, dt):
+    """
+    Smoothly move a player from their current position (x, y)
+    toward their target position (target_x, target_y) at a fixed speed.
+    Instantly teleport if the target map changed.
+    
+    Args:
+        player: Player object with x, y, prev_x, prev_y, target_x, target_y, current_map
+        dt: Time delta in seconds since last update
+    """
+
+    # Make sure target coordinates exist
+    if not hasattr(player, "target_x") or not hasattr(player, "target_y"):
+        player.target_x = player.x
+        player.target_y = player.y
+
+    # Check for map teleport (target != current)
+    if hasattr(player, "prev_map") and player.prev_map != player.current_map:
+        # Instant jump on map switch
+        player.x = player.target_x
+        player.y = player.target_y
+        player.prev_x = player.x
+        player.prev_y = player.y
+        player.prev_map = player.current_map
+        return
+
+    # Default speed (units per second)
+    speed = getattr(player, "speed", 200.0)
+
+    # Compute distance
+    dx = player.target_x - player.x
+    dy = player.target_y - player.y
+    dist = (dx**2 + dy**2) ** 0.5
+
+    if dist > 0:
+        move_dist = min(dist, speed * dt)
+        player.x += dx / dist * move_dist
+        player.y += dy / dist * move_dist
+
+    # Update previous map for next tick
+    player.prev_map = getattr(player, "current_map", player.prev_map)
 
 def autosave_loop():
     global running
@@ -240,6 +303,8 @@ def start_server():
                     clients[pid].direction = saved_data.get("direction", "down")
                     clients[pid].current_map = saved_data.get("current_map", "DefaultMap")
 
+                    
+
                     # Send assigned ID + initial state to client
                     sock.sendto(
                         msgpack.packb({
@@ -256,14 +321,31 @@ def start_server():
                     last_seen[pid] = time.time()
                     player.addr = addr  # update address if changed
 
+                    # if msg["type"] == "move":
+                    #     player.x = msg["x"]
+                    #     player.y = msg["y"]
+                    #     player.direction = msg.get("direction", player.direction)
+                    #     player.moving = msg.get("moving", False)
+                    #     player.needs_save = True 
+                        
+                    #     # Update current_map from client
+                    #     if "current_map" in msg:
+                    #         player.current_map = msg["current_map"]
+
                     if msg["type"] == "move":
-                        player.x = msg["x"]
-                        player.y = msg["y"]
+                        # Save previous position for interpolation
+                        player.prev_x = player.x
+                        player.prev_y = player.y
+                        player.last_update_time = time.time()
+
+                        # Set target position from client
+                        player.target_x = msg["x"]
+                        player.target_y = msg["y"]
                         player.direction = msg.get("direction", player.direction)
                         player.moving = msg.get("moving", False)
-                        player.needs_save = True 
-                        
-                        # Update current_map from client
+                        player.needs_save = True
+
+                        # Update current_map if included
                         if "current_map" in msg:
                             player.current_map = msg["current_map"]
 
@@ -274,10 +356,15 @@ def start_server():
 
                     if msg["type"] == "portal_enter":
                         player.current_map = msg["target_map"]
-                        player.x = msg["spawn_x"]
-                        player.y = msg["spawn_y"]
+                        player.x = msg.get("spawn_x", player.x)
+                        player.y = msg.get("spawn_y", player.y)
 
-                        # Confirm back to client
+                        player.prev_x = player.x
+                        player.prev_y = player.y
+                        player.target_x = player.x
+                        player.target_y = player.y
+                        player.last_update_time = time.time()
+
                         sock.sendto(
                             msgpack.packb({
                                 "type": "map_switch",

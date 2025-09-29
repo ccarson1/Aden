@@ -248,46 +248,53 @@ class GameScene:
             return 0
         
     def update_render_position(self, player, server_rate=20):
+        """Interpolate remote players between last known positions."""
         now = time.time()
         elapsed = now - player.last_update_time
         interval = 1.0 / server_rate
         t = min(1.0, elapsed / interval)
-
         player.render_x = player.prev_x + (player.target_x - player.prev_x) * t
         player.render_y = player.prev_y + (player.target_y - player.prev_y) * t
 
 
     def update(self, dt):
-        """
-        Main update loop for GameScene.
-        Handles input, movement, portal detection, map updates, and server communication.
-        
-        Args:
-            dt (float): Time delta since last frame (seconds)
-        """
-        if self.frozen:  # freeze player + stop anims during fade
+        if self.frozen:
             if self.current_map:
-                self.current_map.update(dt)  # still update animated tiles
+                self.current_map.update(dt)
             return
-        
+
         input_state = self.capture_input()
         moving = self.apply_input(input_state, dt)
 
-        # Update map (animated tiles)
         if self.current_map:
             self.current_map.update(dt)
 
-        # Check for portal collisions
         self.check_portals()
 
-        # Update remote players animations
+        # --- Interpolate local player towards server ---
+        if hasattr(self.local_player, "server_x"):
+            dx = self.local_player.server_x - self.local_player.x
+            dy = self.local_player.server_y - self.local_player.y
+            dist = (dx**2 + dy**2)**0.5
+
+            # Snap only if extremely out of sync
+            max_snap = 64
+            if dist > max_snap:
+                self.local_player.x = self.local_player.server_x
+                self.local_player.y = self.local_player.server_y
+            else:
+                # Smoothly nudge towards server position
+                correction_factor = 0.1  # tweak 0.1~0.3 for snappiness
+                self.local_player.x += dx * correction_factor
+                self.local_player.y += dy * correction_factor
+
+        # --- Remote players ---
         for p in self.players.values():
             if p.current_map == self.local_player.current_map:
+                self.update_render_position(p)
                 if p.moving:
                     p.update_animation(dt, moving=True)
-                    #p.update(dt)  # <-- make sure Player.update(dt) advances animation
 
-        # Send updated position and movement state to server
         self.client.send_move(
             self.local_player.x,
             self.local_player.y,
@@ -366,13 +373,13 @@ class GameScene:
                 continue  # skip players in other maps
 
             # Interpolate remote players
-            if p.id != self.local_player.id:
-                self.update_render_position(p)
+            # if p.id != self.local_player.id:
+            #     self.update_render_position(p)
 
             frame = p.frames[p.direction][p.anim_frame]
 
-            draw_x = p.x if p.id == self.local_player.id else p.render_x
-            draw_y = p.y if p.id == self.local_player.id else p.render_y
+            draw_x = p.x  # use server's interpolated x
+            draw_y = p.y
 
             temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
 

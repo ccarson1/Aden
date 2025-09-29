@@ -17,6 +17,7 @@ class Player:
         self.target_x = x
         self.target_y = y
         self.last_update_time = 0.0
+        self.prev_map = self.current_map 
 
 
 

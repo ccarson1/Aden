@@ -60,13 +60,13 @@ class Client:
                     elif message["type"] == "update":
                         for p in message["players"]:
                             if p["id"] == self.local_player_id:
-                                self.local_player.x = p["x"]
-                                self.local_player.y = p["y"]
+                                # Store server authoritative position
+                                self.local_player.server_x = p["x"]
+                                self.local_player.server_y = p["y"]
                                 self.local_player.direction = p["direction"]
                                 self.local_player.moving = p["moving"]
                                 self.local_player.current_map = p.get("current_map", self.local_player.current_map)
                                 self.scene_manager.scenes["game"].server_time = message["world_time"]
-                                
                             else:
                                 if p["id"] not in self.players:
                                     self.players[p["id"]] = Player(
@@ -76,17 +76,14 @@ class Client:
                                         p.get("frame_h", self.frame_h),
                                         p["x"], p["y"],
                                     )
-                                    
                                 else:
                                     player = self.players[p["id"]]
-
-                                    # Update interpolation state
+                                    # Update interpolation targets
                                     player.prev_x = player.render_x
                                     player.prev_y = player.render_y
                                     player.target_x = p["x"]
                                     player.target_y = p["y"]
                                     player.last_update_time = time.time()
-
                                     player.direction = p["direction"]
                                     player.moving = p["moving"]
                                     player.current_map = p.get("current_map", player.current_map)
@@ -98,20 +95,26 @@ class Client:
                             del self.players[pid]
 
                     elif message["type"] == "map_switch":
-                        # Update local player authoritative state
                         self.local_player.current_map = message["map"]
                         self.local_player.x = message["x"]
                         self.local_player.y = message["y"]
 
-                        # Freeze the player so they can’t move during fade
+                        # Reset interpolation to avoid sliding
+                        self.local_player.prev_x = self.local_player.x
+                        self.local_player.prev_y = self.local_player.y
+                        self.local_player.target_x = self.local_player.x
+                        self.local_player.target_y = self.local_player.y
+                        self.local_player.last_update_time = time.time()
+
+                        # Freeze the player during fade
                         self.scene_manager.current_scene.frozen = True
 
-                        # Start fade-out (don’t load the map yet)
+                        # Start fade and provide portal info for spawn
                         self.scene_manager.start_fade("game")
 
-                        # After fade completes, SceneManager.on_map_data_received will load the TMX
-                        # Server must send map data or confirm map_name
+                        # Once fade completes, load the map
                         self.scene_manager.on_map_data_received(message["map"])
+
 
                         print(f"[INFO] Map switch requested: {message['map']} at ({message['x']}, {message['y']})")
 
