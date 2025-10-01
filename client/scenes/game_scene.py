@@ -6,11 +6,13 @@ import time
 from ..entities.player import Player
 from ..entities import game_map
 from client.entities.camera import Camera
+from client.entities.world_time import WorldTime
 import config
 import random
 from client.graphics.weather import Rain
 from ..ui import toast_manager
 from ..tools import tool_utilities
+
 
 class GameScene:
     """
@@ -57,7 +59,8 @@ class GameScene:
         self.input_history = []
         self.camera = Camera(config.WIDTH, config.HEIGHT, zoom=1.0)
         self.server_time = "00:00:00"
-        self.world_time = "00:00"
+        #self.world_time = "00:00"
+        self.world_time = WorldTime()
         self.rain = Rain(config.WIDTH, config.HEIGHT, density=350, fall_speed=7, wind=1, drop_length=7, thickness=1, overlay_color=(50, 50, 60), overlay_alpha=120)
         self.tool_utilities = tool_utilities.ToolUtilities()
 
@@ -149,65 +152,6 @@ class GameScene:
             self.frozen = True  # freeze player immediately
             self.scene_manager.start_fade("game", portal)  #
 
-    def update_world_time(self, server_time_str):
-        """
-        Convert server-provided UTC time to accelerated game time.
-        1 real second = 1 in-game minute.
-        Display HH:MM only.
-        """
-        try:
-            h, m, s = map(int, server_time_str.split(":"))
-
-            # Total real seconds since midnight
-            total_seconds = h * 3600 + m * 60 + s
-
-            # Accelerated time: 1 real second = 1 in-game minute
-            total_game_minutes = total_seconds
-
-            # Convert back to HH:MM
-            game_hours = (total_game_minutes // 60) % 24
-            game_minutes = total_game_minutes % 60
-
-            self.world_time = f"{game_hours:02d}:{game_minutes:02d}"
-
-        except Exception:
-            self.world_time = "00:00"
-
-            
-    def get_light_alpha(self):
-        """
-        Convert accelerated world_time (HH:MM) to overlay alpha.
-        0 = day, 180 = night.
-        """
-        try:
-            h, m = map(int, self.world_time.split(":"))
-            total_minutes = h * 60 + m  # in-game total minutes
-
-            # Define thresholds in minutes
-            dawn_start = 5 * 60   # 05:00
-            day_start  = 6 * 60   # 06:00
-            dusk_start = 18 * 60  # 18:00
-            night_start= 19 * 60  # 19:00
-
-            if day_start <= total_minutes < dusk_start:
-                return 0  # Day
-
-            elif dusk_start <= total_minutes < night_start:
-                # Fade into night
-                progress = (total_minutes - dusk_start) / 60
-                return int(progress * 180)
-
-            elif dawn_start <= total_minutes < day_start:
-                # Fade into day
-                progress = (total_minutes - dawn_start) / 60
-                return int((1 - progress) * 180)
-
-            else:
-                return 180  # Night
-
-        except Exception:
-            return 0
-        
     def update_render_position(self, player, server_rate=20):
         """Interpolate remote players between last known positions."""
         now = time.time()
@@ -245,8 +189,6 @@ class GameScene:
                 move_dist = min(dist, speed * dt)
                 player.render_x += dx / dist * move_dist
                 player.render_y += dy / dist * move_dist
-
-
 
     def update(self, dt):
         if self.frozen:
@@ -313,7 +255,7 @@ class GameScene:
 
 
         self.toast_manager.update()
-        self.update_world_time(self.server_time)
+        self.world_time.update(self.server_time)
 
     def load_map(self, map_name):
         """
@@ -393,7 +335,7 @@ class GameScene:
 
 
         # --- Step: Apply lighting overlay ---
-        alpha = self.get_light_alpha()
+        alpha = self.world_time.get_light_alpha()
         if alpha > 0:
             # Base night overlay
             overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
@@ -435,7 +377,7 @@ class GameScene:
 
         # Draw world clock (HH:MM only)
         
-        time_text = self.font.render(self.world_time, True, (255, 255, 255))
+        time_text = self.font.render(self.world_time.current_time, True, (255, 255, 255))
         surface.blit(time_text, (surface.get_width() - time_text.get_width() - 10, 10))
 
 

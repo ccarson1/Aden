@@ -245,7 +245,7 @@
   <image source="../images/light1B.png" width="128" height="128"/>
   <tile id="8">
    <properties>
-    <property name="light_radius" type="int" value="30"/>
+    <property name="light_radius" type="int" value="120"/>
    </properties>
    <animation>
     <frame tileid="8" duration="300"/>
@@ -258,7 +258,7 @@
   </tile>
   <tile id="9">
    <properties>
-    <property name="light_radius" type="int" value="30"/>
+    <property name="light_radius" type="int" value="120"/>
    </properties>
    <animation>
     <frame tileid="9" duration="300"/>
@@ -271,7 +271,7 @@
   </tile>
   <tile id="16">
    <properties>
-    <property name="light_radius" type="int" value="30"/>
+    <property name="light_radius" type="int" value="120"/>
    </properties>
    <animation>
     <frame tileid="16" duration="300"/>
@@ -284,7 +284,7 @@
   </tile>
   <tile id="17">
    <properties>
-    <property name="light_radius" type="int" value="30"/>
+    <property name="light_radius" type="int" value="120"/>
    </properties>
    <animation>
     <frame tileid="17" duration="300"/>
