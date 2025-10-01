@@ -10,6 +10,7 @@ import config
 import random
 from client.graphics.weather import Rain
 from ..ui import toast_manager
+from ..tools import tool_utilities
 
 class GameScene:
     """
@@ -58,7 +59,7 @@ class GameScene:
         self.server_time = "00:00:00"
         self.world_time = "00:00"
         self.rain = Rain(config.WIDTH, config.HEIGHT, density=350, fall_speed=7, wind=1, drop_length=7, thickness=1, overlay_color=(50, 50, 60), overlay_alpha=120)
-
+        self.tool_utilities = tool_utilities.ToolUtilities()
 
     def load(self, map_name=None):
         """
@@ -70,17 +71,6 @@ class GameScene:
             self.current_map = game_map.GameMap(path)
             self.map_name = map_name
 
-    def print_click_position(self, mouse_pos):
-        """
-        Prints the world coordinates of the mouse click.
-        
-        Args:
-            mouse_pos (tuple): (x, y) position from pygame.mouse.get_pos()
-        """
-        cam_rect = self.camera.rect
-        world_x = mouse_pos[0] + cam_rect.x
-        world_y = mouse_pos[1] + cam_rect.y
-        print(f"Clicked at world coordinates: ({world_x}, {world_y})")
 
     def connect_to_server(self, server_ip, server_port):
         """
@@ -99,7 +89,8 @@ class GameScene:
             pygame.quit()
             exit()
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
-            self.print_click_position(event.pos)
+            #self.print_click_position(event.pos)
+            self.tool_utilities.print_click_position(event.pos, self.camera.rect)
 
     def capture_input(self):
         """
