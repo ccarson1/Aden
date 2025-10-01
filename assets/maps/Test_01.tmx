@@ -5,7 +5,7 @@
   <tile id="133">
    <properties>
     <property name="spawn_x" value="50"/>
-    <property name="spawn_y" value="100"/>
+    <property name="spawn_y" value="120"/>
     <property name="target_map" value="Harbor_01"/>
    </properties>
   </tile>
@@ -14,8 +14,8 @@
   <image source="../images/CL_Buildings.png" width="560" height="656"/>
   <tile id="743">
    <properties>
-    <property name="spawn_x" value="132"/>
-    <property name="spawn_y" value="164"/>
+    <property name="spawn_x" value="102"/>
+    <property name="spawn_y" value="194"/>
     <property name="target_map" value="home_interior_01"/>
    </properties>
   </tile>
@@ -236,7 +236,7 @@
   <tile id="1346">
    <properties>
     <property name="spawn_x" value="302"/>
-    <property name="spawn_y" value="304"/>
+    <property name="spawn_y" value="400"/>
     <property name="target_map" value="deep_cave"/>
    </properties>
   </tile>

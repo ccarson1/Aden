@@ -9,6 +9,7 @@ from client.entities.camera import Camera
 import config
 import random
 from client.graphics.weather import Rain
+from ..ui import toast_manager
 
 class GameScene:
     """
@@ -48,7 +49,8 @@ class GameScene:
 
         self.clock = pygame.time.Clock()
 
-        self.toasts = [] 
+        self.toast_manager = toast_manager.ToastManager(None, font)
+        
 
         # Input history for client-side prediction and reconciliation
         self.input_history = []
@@ -57,12 +59,6 @@ class GameScene:
         self.world_time = "00:00"
         self.rain = Rain(config.WIDTH, config.HEIGHT, density=350, fall_speed=7, wind=1, drop_length=7, thickness=1, overlay_color=(50, 50, 60), overlay_alpha=120)
 
-    def add_toast(self, text, duration=2.0):
-        self.toasts.append({
-            "text": text,
-            "time": pygame.time.get_ticks(),
-            "duration": duration * 1000  # convert to ms
-        })
 
     def load(self, map_name=None):
         """
@@ -147,32 +143,6 @@ class GameScene:
 
         return moving
 
-    def reconcile(self, authoritative_state):
-        """
-        Reconcile the local player's position with the server's authoritative state.
-        Applies server position and replays any local inputs not yet acknowledged.
-
-        Args:
-            authoritative_state (dict): Server-provided player state containing
-                                        x, y, direction, and optionally current_map.
-        """
-        # Apply authoritative position
-        self.local_player.x = authoritative_state["x"]
-        self.local_player.y = authoritative_state["y"]
-        self.local_player.direction = authoritative_state["direction"]
-        self.local_player.current_map = authoritative_state.get("current_map", self.local_player.current_map)
-
-        # Replay unsent input events after the reconciliation timestamp
-        now = time.time()
-        new_history = []
-        for ts, input_state in self.input_history:
-            if ts > now:
-                dx = input_state["d"] - input_state["a"]
-                dy = input_state["s"] - input_state["w"]
-                if self.current_map:
-                    self.local_player.move(dx, dy, 1/60, self.current_map.colliders)
-                new_history.append((ts, input_state))
-        self.input_history = new_history
 
     def check_portals(self):
         """
@@ -351,10 +321,7 @@ class GameScene:
                 self.current_map.opaque_alpha = max(target_alpha, self.current_map.opaque_alpha - fade_speed)
 
 
-        self.toasts = [
-            t for t in self.toasts if pygame.time.get_ticks() - t["time"] < t["duration"]
-        ]
-
+        self.toast_manager.update()
         self.update_world_time(self.server_time)
 
     def load_map(self, map_name):
@@ -392,18 +359,14 @@ class GameScene:
                       draw_only=["background", "decoration"])
 
         # --- Step 3: Draw remote players with offset ---
-        # for p in self.players.values():
-        #     if p.current_map == self.local_player.current_map:
-        #         frame = p.frames[p.direction][p.anim_frame]
-        #         temp_surface.blit(frame, (p.x - cam_rect.x, p.y - cam_rect.y))
+
 
         for p in self.players.values():
             if p.current_map != self.local_player.current_map:
                 continue  # skip players in other maps
 
             # Interpolate remote players
-            # if p.id != self.local_player.id:
-            #     self.update_render_position(p)
+
 
             frame = p.frames[p.direction][p.anim_frame]
 
@@ -424,11 +387,7 @@ class GameScene:
                             draw_only=["foreground_opaque"],
                             alpha=self.current_map.opaque_alpha)
         
-        
-
-        
-        
-
+    
         # --- Step 5: Zoom ---
         if self.camera.zoom != 1.0:
             scaled = pygame.transform.scale(
@@ -479,16 +438,9 @@ class GameScene:
         # self.rain.update()
         # self.rain.draw(surface)
 
-
-
-
         # draw toasts in top-right
-        y = 10
-        for toast in self.toasts:
-            surf = self.font.render(toast["text"], True, (255, 255, 255))
-            rect = surf.get_rect(topleft=(10, y))
-            surface.blit(surf, rect)
-            y += rect.height + 5
+        self.toast_manager.draw(surface)
+
 
         # Draw world clock (HH:MM only)
         

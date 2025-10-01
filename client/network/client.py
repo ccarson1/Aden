@@ -3,7 +3,6 @@ import socket, threading, msgpack
 import pygame
 from ..entities.player import Player
 from ..entities import game_map
-from ..ui import ToastMessage
 import config
 import time
 
@@ -157,8 +156,8 @@ class Client:
                         print(f"[SERVER] {message['message']}")
                         if self.scene_manager and "game" in self.scene_manager.scenes:
                             game_scene = self.scene_manager.scenes["game"]
-                            if hasattr(game_scene, "add_toast"):
-                                game_scene.add_toast(message["message"])
+                            
+                            game_scene.toast_manager.add_toast(message["message"])
 
                 except socket.timeout:
                     continue

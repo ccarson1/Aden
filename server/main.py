@@ -16,7 +16,7 @@ lock = threading.Lock()
 token_cache = {}
 TOKEN_CACHE_TTL = 30  # seconds
 DB_REFRESH_INTERVAL = 60 
-SAVE_INTERVAL = 300 
+SAVE_INTERVAL = 30 
 
 sock = None
 
