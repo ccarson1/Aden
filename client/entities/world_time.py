@@ -1,5 +1,6 @@
 # client/entities/world_time.py
 import time
+import pygame
 
 class WorldTime:
     """
@@ -63,3 +64,40 @@ class WorldTime:
                 return 180  # Night
         except Exception:
             return 0
+        
+    
+    def draw(self, surface, current_map, camera):
+        """
+        Draw overlay based on current time.
+        """
+        alpha = self.get_light_alpha()
+        if alpha > 0:
+            # Base night overlay
+            overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+            overlay.fill((0, 0, 50, alpha))  # night blue
+
+            # Light tiles reduce darkness
+            for rect, radius in getattr(current_map, "light_tiles", []):
+                light_surf = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
+
+                # Radial gradient: center = brightest, edges = dim
+                for r in range(radius, 0, -1):
+                    t = r / radius  # 1 at edge, 0 at center
+                    fade = int(alpha * ((1 - t) ** 2))  # quadratic: center stronger
+                    pygame.draw.circle(
+                        light_surf,
+                        (0, 0, 0, fade),
+                        (radius, radius),
+                        r
+                    )
+
+                # Subtract from overlay to clear darkness
+                overlay.blit(
+                    light_surf,
+                    (rect.centerx - radius - camera.rect.x,
+                    rect.centery - radius - camera.rect.y),
+                    special_flags=pygame.BLEND_RGBA_SUB
+                )
+
+            # Apply overlay
+            surface.blit(overlay, (0, 0))

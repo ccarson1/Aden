@@ -335,37 +335,8 @@ class GameScene:
 
 
         # --- Step: Apply lighting overlay ---
-        alpha = self.world_time.get_light_alpha()
-        if alpha > 0:
-            # Base night overlay
-            overlay = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-            overlay.fill((0, 0, 50, alpha))  # night blue
+        self.world_time.draw(surface, self.current_map, self.camera)
 
-            # Light tiles reduce darkness
-            for rect, radius in getattr(self.current_map, "light_tiles", []):
-                light_surf = pygame.Surface((radius*2, radius*2), pygame.SRCALPHA)
-
-                # Radial gradient: center = brightest, edges = dim
-                for r in range(radius, 0, -1):
-                    t = r / radius  # 1 at edge, 0 at center
-                    fade = int(alpha * ((1 - t) ** 2))  # quadratic: center stronger
-                    pygame.draw.circle(
-                        light_surf,
-                        (0, 0, 0, fade),
-                        (radius, radius),
-                        r
-                    )
-
-                # Subtract from overlay to clear darkness
-                overlay.blit(
-                    light_surf,
-                    (rect.centerx - radius - self.camera.rect.x,
-                    rect.centery - radius - self.camera.rect.y),
-                    special_flags=pygame.BLEND_RGBA_SUB
-                )
-
-            # Apply overlay
-            surface.blit(overlay, (0, 0))
 
         # Update + draw rain
         # self.rain.update()
