@@ -9,8 +9,9 @@ class WorldTime:
     Provides formatted time string and lighting alpha values.
     """
 
-    def __init__(self):
+    def __init__(self, font):
         self.current_time = "00:00"
+        self.font = font
 
     def update(self, server_time_str):
         """
@@ -29,6 +30,8 @@ class WorldTime:
             game_minutes = total_game_minutes % 60
 
             self.current_time = f"{game_hours:02d}:{game_minutes:02d}"
+
+            
         except Exception:
             self.current_time = "00:00"
 
@@ -101,3 +104,8 @@ class WorldTime:
 
             # Apply overlay
             surface.blit(overlay, (0, 0))
+
+        # Draw world clock (HH:MM only)
+        
+        time_text = self.font.render(self.current_time, True, (255, 255, 255))
+        surface.blit(time_text, (surface.get_width() - time_text.get_width() - 10, 10))

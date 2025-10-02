@@ -105,7 +105,7 @@ class SceneManager:
     def on_map_data_received(self, map_name):
         """Called by the network client when the server sends map data."""
         if isinstance(self.current_scene, GameScene):
-            self.current_scene.load(map_name)   # load TMX file
+            self.current_scene.load_map(map_name)   # load TMX file
             self.current_scene.frozen = False   # let the player move again
         self.fading_in = True                   # start fade-in
         self.fade_alpha = 255

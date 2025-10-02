@@ -12,6 +12,7 @@ import random
 from client.graphics.weather import Rain
 from ..ui import toast_manager
 from ..tools import tool_utilities
+from client.entities.player_controller import PlayerController
 
 
 class GameScene:
@@ -41,7 +42,7 @@ class GameScene:
         # Dictionary of other players received from the server
         self.players = self.client.players
 
-        self.frozen = False
+        # self.frozen = False
 
         # Time interval for autosaving player state (currently unused)
         self.SAVE_INTERVAL = 30
@@ -50,29 +51,17 @@ class GameScene:
         self.map = None          # Deprecated, use current_map
         self.current_map = None  # Current active GameMap
 
-        self.clock = pygame.time.Clock()
-
         self.toast_manager = toast_manager.ToastManager(None, font)
         
 
-        # Input history for client-side prediction and reconciliation
-        self.input_history = []
         self.camera = Camera(config.WIDTH, config.HEIGHT, zoom=1.0)
         self.server_time = "00:00:00"
-        #self.world_time = "00:00"
-        self.world_time = WorldTime()
+        self.world_time = WorldTime(self.font)
         self.rain = Rain(config.WIDTH, config.HEIGHT, density=350, fall_speed=7, wind=1, drop_length=7, thickness=1, overlay_color=(50, 50, 60), overlay_alpha=120)
         self.tool_utilities = tool_utilities.ToolUtilities()
+        self.player_controller = PlayerController(self.local_player)
 
-    def load(self, map_name=None):
-        """
-        Load heavy assets or maps AFTER fade-out finishes.
-        """
-        if map_name:
-            path = f"assets/maps/{map_name}.tmx"
-            print(f"[INFO] Loading TMX AFTER FADE: {path}")
-            self.current_map = game_map.GameMap(path)
-            self.map_name = map_name
+    
 
 
     def connect_to_server(self, server_ip, server_port):
@@ -95,167 +84,21 @@ class GameScene:
             #self.print_click_position(event.pos)
             self.tool_utilities.print_click_position(event.pos, self.camera.rect)
 
-    def capture_input(self):
-        """
-        Capture the current keyboard state for movement controls.
 
-        Returns:
-            dict: Dictionary representing directional input state.
-                  Keys: "w", "s", "a", "d"; values: True if pressed.
-        """
-        keys = pygame.key.get_pressed()
-        input_state = {
-            "w": keys[pygame.K_w],
-            "s": keys[pygame.K_s],
-            "a": keys[pygame.K_a],
-            "d": keys[pygame.K_d],
-        }
-        return input_state
-
-    def apply_input(self, input_state, dt):
-        """
-        Apply movement input locally for client-side prediction.
-        
-        Args:
-            input_state (dict): Current directional inputs.
-            dt (float): Time delta since last frame (seconds).
-
-        Returns:
-            bool: True if the player moved this frame, False otherwise.
-        """
-        dx = input_state["d"] - input_state["a"]
-        dy = input_state["s"] - input_state["w"]
-        moving = dx != 0 or dy != 0
-
-        # Move the player with collision detection
-        if self.current_map:
-            self.local_player.move(dx, dy, dt, self.current_map.colliders)
-
-        # Record input with timestamp for server reconciliation
-        timestamp = time.time()
-        self.input_history.append((timestamp, input_state))
-
-        return moving
-
-
-    def check_portals(self):
-        """
-        Check if the local player is colliding with any portals on the current map.
-        If so, send a portal enter request to the server.
-        """
-        if not self.current_map or self.frozen:
-            return
-
-        portal = self.current_map.get_portal_at(self.local_player.rect)
-        if portal:
-            print(f"[INFO] Portal triggered: {portal.target_map}")
-            self.frozen = True  # freeze player immediately
-            self.scene_manager.start_fade("game", portal)  #
-
-    def update_render_position(self, player, server_rate=20):
-        """Interpolate remote players between last known positions."""
-        now = time.time()
-        elapsed = now - player.last_update_time
-        interval = 1.0 / server_rate
-        t = min(1.0, elapsed / interval)
-        player.render_x = player.prev_x + (player.target_x - player.prev_x) * t
-        player.render_y = player.prev_y + (player.target_y - player.prev_y) * t
-
-    def update_remote_players(self, dt):
-        """
-        Smoothly interpolate all remote players toward their server-reported target positions.
-        """
-        for player in self.client.players.values():
-            # Initialize render positions if they don't exist
-            if not hasattr(player, "render_x"):
-                player.render_x = player.x
-                player.render_y = player.y
-
-            # Initialize target positions if missing
-            if not hasattr(player, "target_x"):
-                player.target_x = player.x
-            if not hasattr(player, "target_y"):
-                player.target_y = player.y
-
-            # Interpolation speed (units per second)
-            speed = getattr(player, "speed", 200.0)
-
-            # Compute distance to target
-            dx = player.target_x - player.render_x
-            dy = player.target_y - player.render_y
-            dist = (dx**2 + dy**2)**0.5
-
-            if dist > 0:
-                move_dist = min(dist, speed * dt)
-                player.render_x += dx / dist * move_dist
-                player.render_y += dy / dist * move_dist
 
     def update(self, dt):
-        if self.frozen:
-            if self.current_map:
-                self.current_map.update(dt)
-            return
-
-        input_state = self.capture_input()
-        moving = self.apply_input(input_state, dt)
-
+        
         if self.current_map:
             self.current_map.update(dt)
+        
 
-        self.check_portals()
+        #self.check_portals()
 
-        # --- Interpolate local player towards server ---
-        if hasattr(self.local_player, "server_x"):
-            dx = self.local_player.server_x - self.local_player.x
-            dy = self.local_player.server_y - self.local_player.y
-            dist = (dx**2 + dy**2)**0.5
-
-            # Snap only if extremely out of sync
-            max_snap = 64
-            if dist > max_snap:
-                self.local_player.x = self.local_player.server_x
-                self.local_player.y = self.local_player.server_y
-            else:
-                # Smoothly nudge towards server position
-                correction_factor = 0.1  # tweak 0.1~0.3 for snappiness
-                self.local_player.x += dx * correction_factor
-                self.local_player.y += dy * correction_factor
-
-        # --- Remote players ---
-        self.update_remote_players(dt)  # interpolate all remote players
-        for p in self.players.values():
-            if p.current_map == self.local_player.current_map and p.moving:
-                p.update_animation(dt, moving=True)
-
-        self.client.send_move(
-            self.local_player.x,
-            self.local_player.y,
-            self.local_player.direction,
-            moving,
-            self.scene_manager.server_info["ip"],
-            self.scene_manager.server_info["port"]
-        )
-
-        if self.current_map:
-            map_width = self.current_map.tmx_data.width * self.current_map.tmx_data.tilewidth
-            map_height = self.current_map.tmx_data.height * self.current_map.tmx_data.tileheight
-            self.camera.update(self.local_player, map_width, map_height)
-
-        if self.current_map and hasattr(self.current_map, "opaque_tiles"):
-            colliding = any(self.local_player.rect.colliderect(r) for r in self.current_map.opaque_tiles)
-
-            # Target alpha: 0 when colliding, 180 when not colliding
-            target_alpha = 150 if colliding else 255
-            fade_speed = 300 * dt  # alpha per second
-
-            if self.current_map.opaque_alpha < target_alpha:
-                self.current_map.opaque_alpha = min(target_alpha, self.current_map.opaque_alpha + fade_speed)
-            elif self.current_map.opaque_alpha > target_alpha:
-                self.current_map.opaque_alpha = max(target_alpha, self.current_map.opaque_alpha - fade_speed)
-
+        self.player_controller.update(dt, self.current_map, self.players, self.client, self.scene_manager, self.camera)
 
         self.toast_manager.update()
         self.world_time.update(self.server_time)
+
 
     def load_map(self, map_name):
         """
@@ -267,11 +110,13 @@ class GameScene:
         if not map_name:
             print("[WARN] Tried to load a map but map_name is None")
             return
-
+        
         path = f"assets/maps/{map_name}.tmx"
         print(f"[INFO] Loading TMX: {path}")
         self.current_map = game_map.GameMap(path)
         self.map_name = map_name
+        print("[GAME] map loaded, unfreezing player_controller")
+        self.player_controller.frozen = False
 
     def draw(self, surface):
         # Clear screen
@@ -291,26 +136,11 @@ class GameScene:
         self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
                       draw_only=["background", "decoration"])
 
-        # --- Step 3: Draw remote players with offset ---
 
 
-        for p in self.players.values():
-            if p.current_map != self.local_player.current_map:
-                continue  # skip players in other maps
+        # --- Step 4: Draw local player and remmote players---
+        self.player_controller.draw(temp_surface, cam_rect, self.players)
 
-            # Interpolate remote players
-
-
-            frame = p.frames[p.direction][p.anim_frame]
-
-            draw_x = getattr(p, "render_x", p.x)
-            draw_y = getattr(p, "render_y", p.y)
-
-            temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
-
-        # --- Step 4: Draw local player ---
-        frame = self.local_player.frames[self.local_player.direction][self.local_player.anim_frame]
-        temp_surface.blit(frame, (self.local_player.x - cam_rect.x, self.local_player.y - cam_rect.y))
 
         self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
                       draw_only=["foreground"])
@@ -332,8 +162,6 @@ class GameScene:
             surface.blit(temp_surface, (0, 0))
 
         
-
-
         # --- Step: Apply lighting overlay ---
         self.world_time.draw(surface, self.current_map, self.camera)
 
@@ -345,11 +173,6 @@ class GameScene:
         # draw toasts in top-right
         self.toast_manager.draw(surface)
 
-
-        # Draw world clock (HH:MM only)
-        
-        time_text = self.font.render(self.world_time.current_time, True, (255, 255, 255))
-        surface.blit(time_text, (surface.get_width() - time_text.get_width() - 10, 10))
 
 
 
