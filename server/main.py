@@ -5,6 +5,7 @@ import msgpack
 import config
 from server import game_state
 from server import auth_db
+from server.game_state import Enemy
 
 clients = {}          # player_id -> Player
 last_seen = {}        # player_id -> timestamp
@@ -25,6 +26,11 @@ AUTH_HOST = config.HOST
 AUTH_PORT = config.AUTH_PORT
 
 TOKEN_TIMEOUT = 5  # seconds to wait for auth server response
+
+enemies = {
+    1: Enemy(1, 100, 100, "green-slime"),
+    2: Enemy(2, 150,400, "green-slime")
+}
 
 
 # ---------------- Helper Functions ----------------
@@ -124,6 +130,7 @@ def broadcast():
 
         world_time = time.strftime("%H:%M:%S", time.gmtime())
         state = []
+        enemy_state = []
 
         with lock:
             # Interpolate positions first using real dt
@@ -149,11 +156,27 @@ def broadcast():
                     "timestamp": p.last_update_time
                 })
 
+            for e in enemies.values():
+                enemy_state.append({
+                    "id": e.id,
+                    "type": e.type,
+                    "x": e.x,
+                    "y": e.y,
+                    "direction": e.direction,
+                    "moving": e.moving,
+                    "current_map": e.current_map,
+                })
+
             # Broadcast to all clients
             for p in clients.values():
                 try:
                     sock.sendto(
-                        msgpack.packb({"type": "update", "players": state, "world_time": world_time}, use_bin_type=True),
+                        msgpack.packb({
+                            "type": "update",
+                            "players": state,
+                            "enemies": enemy_state,
+                            "world_time": world_time,
+                            }, use_bin_type=True),
                         (p.addr[0], p.addr[1])
                     )
                 except Exception:

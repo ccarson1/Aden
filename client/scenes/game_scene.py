@@ -13,6 +13,7 @@ from client.graphics.weather import Rain
 from ..ui import toast_manager
 from ..tools import tool_utilities
 from client.entities.player_controller import PlayerController
+from client.entities.enemy_controller import EnemyController
 
 
 class GameScene:
@@ -60,10 +61,9 @@ class GameScene:
         self.rain = Rain(config.WIDTH, config.HEIGHT, density=350, fall_speed=7, wind=1, drop_length=7, thickness=1, overlay_color=(50, 50, 60), overlay_alpha=120)
         self.tool_utilities = tool_utilities.ToolUtilities()
         self.player_controller = PlayerController(self.local_player)
+        self.enemy_controller = EnemyController()
 
     
-
-
     def connect_to_server(self, server_ip, server_port):
         """
         Connect to the game server using the token stored in login_info.
@@ -85,16 +85,15 @@ class GameScene:
             self.tool_utilities.print_click_position(event.pos, self.camera.rect)
 
 
-
     def update(self, dt):
         
         if self.current_map:
             self.current_map.update(dt)
+
+        self.enemy_controller.update(dt, self.current_map)
         
-
-        #self.check_portals()
-
         self.player_controller.update(dt, self.current_map, self.players, self.client, self.scene_manager, self.camera)
+        
 
         self.toast_manager.update()
         self.world_time.update(self.server_time)
@@ -138,14 +137,17 @@ class GameScene:
 
 
 
-        # --- Step 4: Draw local player and remmote players---
+        # --- Step 3: Draw local player and remmote players---
         self.player_controller.draw(temp_surface, cam_rect, self.players)
+
+        # pass the camera rect so the enemy controller can convert world->screen
+        self.enemy_controller.draw(temp_surface, cam_rect, self.map_name)
 
 
         self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
                       draw_only=["foreground"])
 
-        # --- Step 6: Draw foreground_opaque with dynamic alpha ---
+        # --- Step 4: Draw foreground_opaque with dynamic alpha ---
         self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
                             draw_only=["foreground_opaque"],
                             alpha=self.current_map.opaque_alpha)

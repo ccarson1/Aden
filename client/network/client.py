@@ -121,6 +121,33 @@ class Client:
                                     player.direction = p["direction"]
                                     player.moving = p["moving"]
                                     player.current_map = p.get("current_map", player.current_map)
+                            
+                        # --- Sync enemies (if server sent them) ---
+                        if "enemies" in message and self.scene_manager and self.scene_manager.current_scene:
+                            # prefer the named game scene if available
+                            game_scene = self.scene_manager.scenes.get("game", self.scene_manager.current_scene)
+                            ec = getattr(game_scene, "enemy_controller", None)
+                            if ec is not None:
+                                for e in message["enemies"]:
+                                    eid = e.get("id")
+                                    if eid is None:
+                                        continue
+
+                                    # If we don't yet have this enemy locally, create it with add_enemy.
+                                    # Add support for a "type" field so different sprites can be created.
+                                    if eid not in ec.enemies:
+                                        enemy_type = e.get("type", "green-slime")
+                                        ex = e.get("x", 0)
+                                        ey = e.get("y", 0)
+                                        # call the controller factory method (implement below)
+                                        ec.add_enemy(eid, ex, ey, enemy_type)
+
+                                    # Now apply the authoritative server state every update
+                                    # Prefer using a method on the controller but direct apply is OK:
+                                    try:
+                                        ec.enemies[eid].apply_server_update(e)
+                                    except Exception as exc:
+                                        print(f"[CLIENT] Failed to apply server update to enemy {eid}: {exc}")
 
                     elif message["type"] == "player_disconnect":
                         pid = message["player_id"]
