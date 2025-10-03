@@ -4,8 +4,8 @@
   <image source="../images/MainLev.png" width="1216" height="1344"/>
   <tile id="2140">
    <properties>
-    <property name="spawn_x" value="400"/>
-    <property name="spawn_y" value="700"/>
+    <property name="spawn_x" value="370"/>
+    <property name="spawn_y" value="740"/>
     <property name="target_map" value="Test_01"/>
    </properties>
   </tile>

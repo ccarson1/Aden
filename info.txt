@@ -46,3 +46,14 @@
 └─ README.md
 
 
+server/
+│── __init__.py
+│── main.py              # Entry point (start_server)
+│── config.py            # Settings/constants
+│── network.py           # Socket setup, sending/receiving, broadcasting
+│── players.py           # Player management (add/remove/update/interpolate)
+│── enemies.py           # Enemy management
+│── auth.py              # Token verification, caching, auth_db wrappers
+│── persistence.py       # Autosave, DB refresh, player load/save
+│── tasks.py             # Background loops (cleanup, autosave, refresh tokens)
+│── utils.py             # Shared helpers

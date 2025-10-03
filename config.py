@@ -14,3 +14,12 @@ FONT_SIZE = 32
 TOAST_FONT_SIZE = 24
 BUTTON_COLOR = (100, 100, 255)
 TEXT_COLOR = (255, 255, 255)
+
+#auth
+TOKEN_CACHE_TTL = 30  # seconds
+TOKEN_TIMEOUT = 5  # seconds to wait for auth server response
+token_cache = {}
+
+#Game Save
+DB_REFRESH_INTERVAL = 60 
+SAVE_INTERVAL = 30 
