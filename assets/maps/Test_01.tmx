@@ -235,8 +235,8 @@
   <image source="../images/Mainlev_build.png" width="1344" height="2112"/>
   <tile id="1346">
    <properties>
-    <property name="spawn_x" value="302"/>
-    <property name="spawn_y" value="400"/>
+    <property name="spawn_x" value="370"/>
+    <property name="spawn_y" value="420"/>
     <property name="target_map" value="deep_cave"/>
    </properties>
   </tile>

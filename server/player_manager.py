@@ -1,7 +1,8 @@
 # server/player_manager.py
 import time
-from server import auth_db, game_state
+from server import auth_db
 import config
+from server import player
 
 class PlayerManager:
     def __init__(self):
@@ -12,6 +13,7 @@ class PlayerManager:
         self.available_ids = []
         self.token_cache = config.token_cache
         self.TOKEN_CACHE_TTL = config.TOKEN_CACHE_TTL
+        self.player = None
 
     # ---------------- Player Lifecycle ----------------
     def get_username_from_pid(self, pid):
@@ -70,23 +72,25 @@ class PlayerManager:
             username = auth_db.get_username_from_token(token)
             saved_data = auth_db.load_player_state(username)
 
-            player = game_state.Player(
+            # Create the Player instance
+            new_player = player.Player(
                 pid, f"Player{pid}",
                 frame_w=64, frame_h=64,
                 x=saved_data.get("x", 100),
                 y=saved_data.get("y", 100)
             )
-            player.addr = addr
-            player.direction = saved_data.get("direction", "down")
-            player.current_map = saved_data.get("current_map", "DefaultMap")
+            new_player.addr = addr
+            new_player.direction = saved_data.get("direction", "down")
+            new_player.current_map = saved_data.get("current_map", "DefaultMap")
 
-            self.clients[pid] = player
+            self.clients[pid] = new_player
             self.last_seen[pid] = time.time()
             print(f"[INFO] Assigned player ID {pid} to {username}")
-            return pid, player, saved_data
+            return pid, new_player, saved_data
         else:
             pid = self.tokens[token]
-            player = self.clients[pid]
+            existing_player = self.clients[pid]
             self.last_seen[pid] = time.time()
-            player.addr = addr
-            return pid, player, None
+            existing_player.addr = addr
+            return pid, existing_player, None
+
