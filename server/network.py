@@ -41,11 +41,12 @@ class Network:
                         "moving": getattr(p, "moving", False),
                         "frame_w": getattr(p, "frame_w", 64),
                         "frame_h": getattr(p, "frame_h", 64),
-                        "current_map": getattr(p, "current_map", "DefaultMap"),
+                        "current_map": getattr(p, "current_map", "Test_01"),
                         "timestamp": p.last_update_time
                     })
 
                 for e in enemies.values():
+                    #print(getattr(e, "columns", 11))
                     enemy_state.append({
                         "id": e.id,
                         "type": e.type,
@@ -54,6 +55,12 @@ class Network:
                         "direction": e.direction,
                         "moving": e.moving,
                         "current_map": e.current_map,
+                        "rows": getattr(e, "rows", 1),
+                        "columns": getattr(e, "columns", 11),
+                        "hp": getattr(e, "hp", 10),
+                        "speed": getattr(e, "speed", 100.0),
+                        "frame_speed": getattr(e, "frame_speed", 0.12),
+                        "directions": getattr(e, "directions", ["down"])
                     })
 
                 # Broadcast to all clients

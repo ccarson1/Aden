@@ -192,8 +192,13 @@ class PlayerController:
         # --- Step 3: Draw remote players with offset ---
 
         for p in players.values():
-            if p.current_map != self.player.current_map:
-                continue  # skip players in other maps
+            # if p.current_map != self.player.current_map:
+            #     continue  # skip players in other maps
+
+            # Skip remote players that have no map or different map
+            # This is still in testing for a multiplayer visibility issue (I001)
+            if not hasattr(p, "current_map") or p.current_map != self.player.current_map:
+                continue
 
 
             frame = p.frames[p.direction][p.anim_frame]

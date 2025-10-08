@@ -117,6 +117,10 @@ class GameScene:
         print("[GAME] map loaded, unfreezing player_controller")
         self.player_controller.frozen = False
 
+        # 🟢 Sync enemy map names
+        for enemy in self.enemy_controller.enemies.values():
+            enemy.current_map = self.map_name
+
     def draw(self, surface):
         # Clear screen
         surface.fill((0, 0, 0))

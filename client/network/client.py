@@ -69,6 +69,7 @@ class Client:
                                     )
                                     player.render_x = p["x"]
                                     player.render_y = p["y"]
+                                    # There is no Default map (I002)
                                     player.current_map = p.get("current_map", "DefaultMap")
                                     self.players[p["id"]] = player
 
@@ -96,6 +97,7 @@ class Client:
                                     )
                                     player.render_x = p["x"]
                                     player.render_y = p["y"]
+                                    # There is no Default map (I002)
                                     player.current_map = p.get("current_map", "DefaultMap")
                                     self.players[p["id"]] = player
                                 else:
@@ -124,7 +126,6 @@ class Client:
                             
                         # --- Sync enemies (if server sent them) ---
                         if "enemies" in message and self.scene_manager and self.scene_manager.current_scene:
-                            # prefer the named game scene if available
                             game_scene = self.scene_manager.scenes.get("game", self.scene_manager.current_scene)
                             ec = getattr(game_scene, "enemy_controller", None)
                             if ec is not None:
@@ -132,18 +133,23 @@ class Client:
                                     eid = e.get("id")
                                     if eid is None:
                                         continue
+                                    
+                                    enemy_data = {
+                                        "x": e.get("x", 0),
+                                        "y": e.get("y", 0),
+                                        "rows": e.get("rows", 1),
+                                        "columns": e.get("columns", 11),
+                                        "type": e.get("type", "green-slime"),
+                                        "current_map": e.get("current_map", "Test_01"),
+                                        "hp": e.get("hp", 10),
+                                        "speed": e.get("speed", 100.0),
+                                        "frame_speed": e.get("frame_speed", 0.12),
+                                        "directions": e.get("directions", ["down"])
+                                    }
 
-                                    # If we don't yet have this enemy locally, create it with add_enemy.
-                                    # Add support for a "type" field so different sprites can be created.
                                     if eid not in ec.enemies:
-                                        enemy_type = e.get("type", "green-slime")
-                                        ex = e.get("x", 0)
-                                        ey = e.get("y", 0)
-                                        # call the controller factory method (implement below)
-                                        ec.add_enemy(eid, ex, ey, enemy_type)
+                                        ec.add_enemy(eid, enemy_data)  # pass a dict now
 
-                                    # Now apply the authoritative server state every update
-                                    # Prefer using a method on the controller but direct apply is OK:
                                     try:
                                         ec.enemies[eid].apply_server_update(e)
                                     except Exception as exc:
