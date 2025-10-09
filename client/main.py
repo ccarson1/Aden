@@ -10,7 +10,21 @@ FONT_SIZE = config.FONT_SIZE
 MAIN_FONT = pygame.font.SysFont(None, FONT_SIZE)
 
 WIDTH, HEIGHT = config.WIDTH, config.HEIGHT
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+# Default flags (software surface)
+flags = 0
+
+# Check if hardware acceleration is available
+info = pygame.display.Info()
+if hasattr(info, "hw") and info.hw:  # hardware surfaces supported
+    flags |= pygame.HWSURFACE | pygame.DOUBLEBUF
+else:
+    # fallback to software rendering
+    print("[INFO] Hardware acceleration not available — using CPU mode.")
+
+# Optional: use fullscreen or resizable flags if you like
+# flags |= pygame.RESIZABLE
+
+screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
 pygame.display.set_caption("Aden")
 
 

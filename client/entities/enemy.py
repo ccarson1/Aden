@@ -1,5 +1,3 @@
-import pygame
-import os
 
 import pygame
 import os

@@ -9,7 +9,7 @@ from client.entities.camera import Camera
 from client.entities.world_time import WorldTime
 import config
 import random
-from client.graphics.weather import Rain
+from client.graphics.weather import Rain, Snow
 from ..ui import toast_manager
 from ..tools import tool_utilities
 from client.entities.player_controller import PlayerController
@@ -58,7 +58,8 @@ class GameScene:
         self.camera = Camera(config.WIDTH, config.HEIGHT, zoom=1.0)
         self.server_time = "00:00:00"
         self.world_time = WorldTime(self.font)
-        self.rain = Rain(config.WIDTH, config.HEIGHT, density=350, fall_speed=7, wind=1, drop_length=7, thickness=1, overlay_color=(50, 50, 60), overlay_alpha=120)
+        self.rain = Rain(config.WIDTH, config.HEIGHT, density=450, fall_speed=15, wind=1, drop_length=8, thickness=1, overlay_color=(50, 50, 60), overlay_alpha=120)
+        self.snow = Snow(config.WIDTH, config.HEIGHT, density=150, start_time=5000)
         self.tool_utilities = tool_utilities.ToolUtilities()
         self.player_controller = PlayerController(self.local_player)
         self.enemy_controller = EnemyController()
@@ -173,8 +174,12 @@ class GameScene:
 
 
         # Update + draw rain
-        # self.rain.update()
-        # self.rain.draw(surface)
+        self.rain.update()
+        self.rain.draw(surface)
+
+        #Update + draw snow
+        # self.snow.update()
+        # self.snow.draw(surface)
 
         # draw toasts in top-right
         self.toast_manager.draw(surface)
