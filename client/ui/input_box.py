@@ -14,21 +14,41 @@ class InputBox:
         self.color = INACTIVE_COLOR
 
     def handle_event(self, event):
+        handled = False  # Track whether this box handled the event
+
         if event.type == pygame.MOUSEBUTTONDOWN:
+            # Activate if clicked
             self.active = self.rect.collidepoint(event.pos)
-            self.color = ACTIVE_COLOR if self.active else INACTIVE_COLOR
-        if event.type == pygame.KEYDOWN and self.active:
+            handled = True
+
+        elif event.type == pygame.KEYDOWN and self.active:
             if event.key == pygame.K_BACKSPACE:
                 self.text = self.text[:-1]
-            elif event.key != pygame.K_RETURN:
-                self.text += event.unicode
+                handled = True
+            elif event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+                # Ignore these keys but mark them as handled
+                handled = True
+            elif event.key == pygame.K_TAB:
+                # Ignore but do NOT mark as handled — allow scene to manage tab switching
+                handled = False
+            else:
+                if event.unicode.isprintable():
+                    self.text += event.unicode
+                    handled = True
+
+        return handled
 
     def draw(self, surface):
+        # Update color based on active state
+        self.color = ACTIVE_COLOR if self.active else INACTIVE_COLOR
+
         # Draw label
-        label_surf = self.font.render(self.label, True, INACTIVE_COLOR)
+        label_surf = self.font.render(self.label, True, TEXT_COLOR)
         surface.blit(label_surf, (self.rect.x, self.rect.y - self.font.get_height() - 5))
+
         # Draw box
         pygame.draw.rect(surface, self.color, self.rect, 2)
+
         # Draw text
         txt_surf = self.font.render(self.text, True, TEXT_COLOR)
         surface.blit(txt_surf, (self.rect.x + 5, self.rect.y + 10))

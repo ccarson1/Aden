@@ -1,4 +1,4 @@
-#client/network/client.py
+ #client/network/client.py
 import socket, threading, msgpack
 import pygame
 from ..entities.player import Player
@@ -22,14 +22,20 @@ class Client:
 
 
     def connect(self, server_ip, server_port, token):
-        self.token = token 
-        self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.client_socket.settimeout(1.0)
+        self.token = token
+
+        # Use passed values or fallback to config
+        ip = server_ip if server_ip else config.HOST
+        port = server_port if server_port else config.PORT
+
+        if self.client_socket is None:
+            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.client_socket.settimeout(1.0)
+
         try:
-            # Include token in join request
             self.client_socket.sendto(
                 msgpack.packb({"type": "join", "token": token}, use_bin_type=True),
-                (server_ip, server_port)
+                (ip, port)
             )
         except Exception as e:
             print("Failed to send join:", e)

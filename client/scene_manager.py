@@ -4,6 +4,7 @@ from client.scenes.create_scene import CreateScene
 from client.scenes.server_scene import ServerScene
 from client.scenes.game_scene import GameScene
 from client.network.client import Client
+from client.network.network import NetworkClient
 import pygame
 import config
 
@@ -15,6 +16,10 @@ class SceneManager:
         # Initialize network client
         self.client = Client("assets/sprites/Swordsman_lvl1_Walk_with_shadow.png")
         self.client.set_scene_manager(self)
+
+        # Initialize the network client once
+        self.network = NetworkClient()
+        self.current_scene = None
 
         # Server info
         self.server_info = {"ip": config.HOST, "port": config.PORT}
@@ -55,6 +60,10 @@ class SceneManager:
     def switch_scene(self, scene_name):
         if scene_name in self.scenes:
             self.current_scene = self.scenes[scene_name]
+
+            # Update InputBox text when activating the scene
+            if hasattr(self.current_scene, "on_activate"):
+                self.current_scene.on_activate()
 
             # If switching to GameScene, connect to server
             if isinstance(self.current_scene, GameScene) and self.server_info:
