@@ -1,6 +1,8 @@
 import pygame
 from client.scene_manager import SceneManager
 import config
+import local_server
+import atexit
 
 pygame.init()
 
@@ -32,6 +34,9 @@ pygame.display.set_caption("Aden")
 scene_manager = SceneManager(MAIN_FONT)
 clock = pygame.time.Clock()
 
+atexit.register(local_server.stop_servers)
+
+
 running = True
 while running:
     dt = clock.tick(60) / 1000
@@ -44,4 +49,5 @@ while running:
     scene_manager.draw(screen)
     pygame.display.flip()
 
+local_server.stop_servers()
 pygame.quit()

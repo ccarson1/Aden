@@ -3,6 +3,9 @@ from client.ui.button import Button
 from client.ui.input_box import InputBox
 import os
 import config
+import socket
+import time
+import local_server
 
 class MainMenu:
     def __init__(self, scene_manager, font, width, height):
@@ -19,12 +22,13 @@ class MainMenu:
         # Buttons
         self.login_button = Button(center_x, start_y + 120 + spacing, button_w, button_h, "Login", font)
         self.new_char_button = Button(center_x, start_y + 180 + spacing, button_w, button_h, "New Character", font)
+        self.start_local_server_button = Button(center_x, start_y + 240 + spacing, button_w, button_h, "Local Server", font)
 
         # Inputs
         self.host_input = InputBox(center_x, start_y, 200, 40, "HOST", font, text=config.HOST)
         self.port_input = InputBox(center_x, start_y + 60 + spacing, 200, 40, "PORT", font, text=str(config.AUTH_PORT))
 
-        self.focusable = [self.host_input, self.port_input, self.login_button, self.new_char_button]
+        self.focusable = [self.host_input, self.port_input, self.login_button, self.new_char_button, self.start_local_server_button]
         self.focus_index = 0
         self._set_focus(0)
 
@@ -65,12 +69,16 @@ class MainMenu:
                     self._login_action()
                 elif current == self.new_char_button:
                     self._new_char_action()
+                elif current == self.start_local_server_button:
+                    self._start_local_server_action()
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.login_button.is_clicked(event.pos):
                 self._login_action()
             elif self.new_char_button.is_clicked(event.pos):
                 self._new_char_action()
+            elif self.start_local_server_button.is_clicked(event.pos):
+                    self._start_local_server_action()
 
     # def _login_action(self):
     #     host = self.host_input.text.strip()
@@ -119,6 +127,44 @@ class MainMenu:
         self.scene_manager.network.reconnect(host, port)
 
         self.scene_manager.switch_scene("create")
+
+    
+    def wait_for_server(self, host, port, timeout=5.0):
+        if not host:  # fallback if host is empty
+            host = "127.0.0.1"
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                s = socket.create_connection((host, port), timeout=0.5)
+                s.close()
+                return True
+            except (ConnectionRefusedError, OSError):
+                time.sleep(0.1)
+        return False
+
+    def _start_local_server_action(self):
+        host = self.host_input.text.strip()
+        try:
+            port = int(self.port_input.text.strip())
+        except ValueError:
+            port = 50880
+
+        self.scene_manager.server_info["ip"] = host
+        self.scene_manager.server_info["port"] = port
+
+        # Start servers
+        auth_proc, main_proc = local_server.run_servers()
+        self.scene_manager.auth_proc = auth_proc
+        self.scene_manager.main_proc = main_proc
+
+        # Wait for startup
+        if self.wait_for_server(host, port):
+            print("[INFO] Server is ready")
+        else:
+            print("[WARN] Server did not start in time")
+
+        self.scene_manager.switch_scene("login")
+
 
     def update(self, dt):
         pass
