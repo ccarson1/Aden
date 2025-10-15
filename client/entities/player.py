@@ -17,6 +17,7 @@ class Player:
         self.MOVE_SPEED = 100  # pixels per second
         self.ANIMATION_SPEED = 0.15  # seconds per frame
         self.show_hitbox = True
+        self.z_index = 0
 
         # Interpolation state
         self.prev_x = x
@@ -58,7 +59,7 @@ class Player:
             self.frame_h - (self.pad_top + self.pad_bottom)
         )
 
-    def move(self, dx, dy, dt, colliders):
+    def move(self, dx, dy, dt, colliders, elevations):
         """Move player, handle collisions, update direction & animation."""
         if dx == 0 and dy == 0:
             self.anim_frame = 0
@@ -72,20 +73,40 @@ class Player:
         new_y = self.y + move_y
         future_rect = self.get_hitbox(new_x, new_y)
 
-        # Check collisions
+        # # Check collisions
+        # for collider in colliders:
+        #     if future_rect.colliderect(collider):
+        #         # Block movement along the axis that collides
+        #         if dx != 0:
+        #             move_x = 0
+        #         if dy != 0:
+        #             move_y = 0
+        #         future_rect = self.get_hitbox(self.x + move_x, self.y + move_y)
+
         for collider in colliders:
-            if future_rect.colliderect(collider):
-                # Block movement along the axis that collides
-                if dx != 0:
-                    move_x = 0
-                if dy != 0:
-                    move_y = 0
-                future_rect = self.get_hitbox(self.x + move_x, self.y + move_y)
+            if self.z_index == collider["z_level"]:
+                if future_rect.colliderect(collider["rect"]):
+                    # Block movement along the axis that collides
+                    if dx != 0:
+                        move_x = 0
+                    if dy != 0:
+                        move_y = 0
+                    future_rect = self.get_hitbox(self.x + move_x, self.y + move_y)
 
         # Apply movement
         self.x += move_x
         self.y += move_y
         self.rect = future_rect  # update main rect for portal/collision checks
+
+        # --- Update player z_index if colliding with elevation tile ---
+        for elevation in elevations:
+            # Only consider elevation tiles (assuming they have 'z_level' set)
+            if "z_index" in elevation and self.rect.colliderect(elevation["rect"]):
+                print(f"Evevation tile index: {elevation['z_index']} ")
+                if self.z_index != elevation["z_index"]:
+                    print(f"[INFO] Player z_index changed: {self.z_index} -> {elevation['z_index']}")
+                self.z_index = elevation["z_index"]
+                break  # stop at first collision
 
         # Update direction
         if dx > 0: self.direction = "right"

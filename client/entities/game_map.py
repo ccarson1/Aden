@@ -29,9 +29,25 @@ class GameMap:
         ]
 
         # Track opaque tile rects for collision fading
+        # self.opaque_tiles = []
+        # for layer in self.layers:
+        #     if layer.layer.name.lower() == "foreground_opaque":
+        #         for x, y, _ in layer.tiles:
+        #             rect = pygame.Rect(
+        #                 x * self.tmx_data.tilewidth,
+        #                 y * self.tmx_data.tileheight,
+        #                 self.tmx_data.tilewidth,
+        #                 self.tmx_data.tileheight
+        #             )
+        #             self.opaque_tiles.append(rect)
+
+        # Track opaque tile rects for collision fading
         self.opaque_tiles = []
         for layer in self.layers:
             if layer.layer.name.lower() == "foreground_opaque":
+                # Get the layer's z_index (default 0)
+                layer_z = getattr(layer, "z_index", 0)
+
                 for x, y, _ in layer.tiles:
                     rect = pygame.Rect(
                         x * self.tmx_data.tilewidth,
@@ -39,7 +55,9 @@ class GameMap:
                         self.tmx_data.tilewidth,
                         self.tmx_data.tileheight
                     )
-                    self.opaque_tiles.append(rect)
+                    # Store both rect and z_index
+                    self.opaque_tiles.append({"rect": rect, "z_index": layer_z})
+
             if hasattr(layer, "tiles"):
                 for x, y, tile in layer.tiles:
                     # Get the GID at this position in the original pytmx layer
@@ -58,7 +76,20 @@ class GameMap:
                         self.light_tiles.append((rect, int(radius)))
                         print(f"Light tile at ({x},{y}) with radius {radius}")  # debug
 
-        # --- Colliders ---
+        #--- Colliders ---
+        # self.colliders = []
+        # for layer in self.tmx_data.layers:
+        #     if layer.name.lower() == "collision":
+        #         for x, y, gid in layer:
+        #             if gid != 0:
+        #                 rect = pygame.Rect(
+        #                     x * self.tmx_data.tilewidth,
+        #                     y * self.tmx_data.tileheight,
+        #                     self.tmx_data.tilewidth,
+        #                     self.tmx_data.tileheight
+        #                 )
+        #                 self.colliders.append(rect)
+
         self.colliders = []
         for layer in self.tmx_data.layers:
             if layer.name.lower() == "collision":
@@ -70,7 +101,34 @@ class GameMap:
                             self.tmx_data.tilewidth,
                             self.tmx_data.tileheight
                         )
-                        self.colliders.append(rect)
+                        
+                        # Get z_level from tile properties (default 0)
+                        props = self.tmx_data.get_tile_properties_by_gid(gid) or {}
+                        z_level = int(props.get("z_level", 0))
+                        
+                        # Store both rect and z_level
+                        self.colliders.append({"rect": rect, "z_level": z_level})
+
+        self.elevation_colliders = []
+        for layer in self.tmx_data.layers:
+            if layer.name.lower() == "elevation":
+                for x, y, gid in layer:
+                    if gid != 0:
+                        rect = pygame.Rect(
+                            x * self.tmx_data.tilewidth,
+                            y * self.tmx_data.tileheight,
+                            self.tmx_data.tilewidth,
+                            self.tmx_data.tileheight
+                        )
+
+                        # Get z_index from tile properties (default 0)
+                        props = self.tmx_data.get_tile_properties_by_gid(gid) or {}
+                        z_index = int(props.get("z_index", 0))
+
+                        # Store both rect and z_index
+                        self.elevation_colliders.append({"rect": rect, "z_index": z_index})
+                        print(f"Evelation Colliders")
+                        print(self.elevation_colliders)
 
         # --- Portals ---
         self.portals = []

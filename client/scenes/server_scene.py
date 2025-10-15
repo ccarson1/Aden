@@ -28,7 +28,7 @@ class ServerScene:
         self.focus_index = 0
         self._set_focus(0)
 
-        path = os.path.join("assets", "images", "field_background.jpg")
+        path = os.path.join("assets", "images", "mountain_fixed.png")
         self.background_image = pygame.image.load(path)
         self.background_image = pygame.transform.scale(self.background_image, (self.width, self.height))
 

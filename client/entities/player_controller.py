@@ -47,7 +47,7 @@ class PlayerController:
 
         # Move the player with collision detection
         if current_map:
-            self.player.move(dx, dy, dt, current_map.colliders)
+            self.player.move(dx, dy, dt, current_map.colliders, current_map.elevation_colliders)
             #current_map = self.current_map
 
         # Record input with timestamp for server reconciliation
@@ -170,7 +170,11 @@ class PlayerController:
 
         # --- Opaque tile fade ---
         if current_map and hasattr(current_map, "opaque_tiles"):
-            colliding = any(self.player.rect.colliderect(r) for r in current_map.opaque_tiles)
+            colliding = any(
+                self.player.rect.colliderect(tile["rect"]) and self.player.z_index == tile["z_index"]
+                for tile in current_map.opaque_tiles
+            )
+
             target_alpha = 150 if colliding else 255
             fade_speed = 300 * dt
 
@@ -178,6 +182,7 @@ class PlayerController:
                 current_map.opaque_alpha = min(target_alpha, current_map.opaque_alpha + fade_speed)
             elif current_map.opaque_alpha > target_alpha:
                 current_map.opaque_alpha = max(target_alpha, current_map.opaque_alpha - fade_speed)
+
 
     
     def draw(self, temp_surface, cam_rect, players):
