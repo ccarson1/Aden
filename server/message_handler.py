@@ -37,7 +37,13 @@ class MessageHandler:
     def on_save(self, pid, player, msg, addr):
         username = self.player_manager.get_username_from_pid(pid)
         auth_db.save_player_state(
-            pid, username, msg["x"], msg["y"], msg["direction"], msg["current_map"]
+            pid,
+            username,
+            msg["x"],
+            msg["y"],
+            msg["direction"],
+            msg["current_map"],
+            msg.get("z_index", 0)  # <-- include z_index
         )
 
     def on_portal_enter(self, pid, player, msg, addr):

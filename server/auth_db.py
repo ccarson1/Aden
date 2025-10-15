@@ -43,6 +43,7 @@ def init_db():
         y REAL NOT NULL,
         direction TEXT NOT NULL,
         current_map TEXT,
+        z_index INTEGER DEFAULT 0,
         last_update INTEGER NOT NULL
     )
     """)
@@ -170,32 +171,39 @@ def refresh_token(token, additional_ttl=TOKEN_TTL):
     return True
 
 
-def save_player_state(player_id, username, x, y, direction, current_map):
+def save_player_state(player_id, username, x, y, direction, current_map, z_index):
     now = int(time.time())
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     cur.execute("""
-    INSERT INTO player_data (player_id, username, x, y, direction, current_map, last_update)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO player_data (player_id, username, x, y, direction, current_map, z_index, last_update)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(player_id) DO UPDATE SET
         x=excluded.x,
         y=excluded.y,
         direction=excluded.direction,
         current_map=excluded.current_map,
+        z_index=excluded.z_index,
         last_update=excluded.last_update
-    """, (player_id, username, x, y, direction, current_map, now))
+    """, (player_id, username, x, y, direction, current_map, z_index, now))
     conn.commit()
     conn.close()
 
 def load_player_state(username):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("SELECT x, y, direction, current_map FROM player_data WHERE username=?", (username,))
+    c.execute("SELECT x, y, direction, current_map, z_index FROM player_data WHERE username=?", (username,))
     row = c.fetchone()
     conn.close()
     if row:
-        return {"x": row[0], "y": row[1], "direction": row[2], "current_map": row[3]}
-    return {"x": 100, "y": 100, "direction": "down", "current_map": "Test_01"}
+        return {
+            "x": row[0],
+            "y": row[1],
+            "direction": row[2],
+            "current_map": row[3],
+            "z_index": row[4]
+        }
+    return {"x": 100, "y": 100, "direction": "down", "current_map": "Test_01", "z_index": 0}
 
 def get_username_from_token(token):
     conn = sqlite3.connect(DB_FILE)

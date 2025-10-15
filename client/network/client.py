@@ -55,6 +55,7 @@ class Client:
                             self.local_player.x = data.get("x", 100)
                             self.local_player.y = data.get("y", 100)
                             self.local_player.direction = data.get("direction", "down")
+                            self.local_player.z_index = data.get("z_index", 0)
                             if "current_map" in data:
                                 self.local_player.current_map = data["current_map"]
                                 # Tell GameScene to load it
@@ -89,6 +90,7 @@ class Client:
                                 self.local_player.direction = p["direction"]
                                 self.local_player.moving = p["moving"]
                                 self.local_player.current_map = p.get("current_map", self.local_player.current_map)
+                                self.local_player.z_index = p.get("z_index", getattr(self.local_player, "z_index", 0))
                                 self.scene_manager.scenes["game"].server_time = message["world_time"]
                             else:
                                 if p["id"] not in self.players:
@@ -105,6 +107,7 @@ class Client:
                                     player.render_y = p["y"]
                                     # There is no Default map (I002)
                                     player.current_map = p.get("current_map", "DefaultMap")
+                                    player.z_index = p.get("z_index", 0) 
                                     self.players[p["id"]] = player
                                 else:
                                     player = self.players[p["id"]]
@@ -129,6 +132,7 @@ class Client:
                                     player.direction = p["direction"]
                                     player.moving = p["moving"]
                                     player.current_map = p.get("current_map", player.current_map)
+                                    player.z_index = p.get("z_index", getattr(player, "z_index", 0))
                             
                         # --- Sync enemies (if server sent them) ---
                         if "enemies" in message and self.scene_manager and self.scene_manager.current_scene:
@@ -236,6 +240,7 @@ class Client:
             "direction": direction,
             "moving": moving,
             "current_map": self.local_player.current_map,
+            "z_index": self.local_player.z_index,
             "token": self.token
         }
         self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))

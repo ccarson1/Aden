@@ -42,6 +42,7 @@ class Network:
                         "frame_w": getattr(p, "frame_w", 64),
                         "frame_h": getattr(p, "frame_h", 64),
                         "current_map": getattr(p, "current_map", "Test_01"),
+                        "z_index": getattr(p, "z_index", 0),
                         "timestamp": p.last_update_time
                     })
 

@@ -82,6 +82,8 @@ class PlayerManager:
             new_player.addr = addr
             new_player.direction = saved_data.get("direction", "down")
             new_player.current_map = saved_data.get("current_map", "DefaultMap")
+            new_player.z_index = saved_data.get("z_index", 0)  # <- Load from DB
+            new_player.username = username  # <- For autosave
 
             self.clients[pid] = new_player
             self.last_seen[pid] = time.time()

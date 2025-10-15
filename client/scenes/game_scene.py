@@ -270,8 +270,8 @@ class GameScene:
             )
 
         # --- Step 3: Draw local player and remote players ---
-        self.player_controller.draw(temp_surface, cam_rect, self.players)
-
+        self.player_controller.draw(temp_surface, cam_rect, self.players, self.current_map)
+        #self.player_controller.draw(temp_surface, cam_rect, self.players)
         # pass the camera rect so the enemy controller can convert world->screen
         self.enemy_controller.draw(temp_surface, cam_rect, self.map_name)
 
@@ -290,6 +290,8 @@ class GameScene:
                 draw_only=["foreground_opaque"],
                 alpha=self.current_map.opaque_alpha
             )
+
+        
 
         # --- Step 4: Zoom ---
         if self.camera.zoom != 1.0:

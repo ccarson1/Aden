@@ -45,12 +45,13 @@ class Utility:
                     y = getattr(player, "y", None)
                     direction = getattr(player, "direction", None)
                     current_map = getattr(player, "current_map", None)
+                    z_index = getattr(player, "z_index", 0) 
 
                     if None in (x, y, direction, current_map):
                         print(f"[AUTOSAVE] Skipping player {pid} (incomplete data)")
                         continue
 
-                    auth_db.save_player_state(pid, username, x, y, direction, current_map)
+                    auth_db.save_player_state(pid, username, x, y, direction, current_map, z_index)
                     player.needs_save = False
 
                     try:

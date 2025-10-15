@@ -12,6 +12,7 @@ class Player:
         self.moving = False
         self.current_map = None  # default map
         self.needs_save = False
+        self.z_index = 0
 
         # Interpolation state
         self.prev_x = x
@@ -30,6 +31,7 @@ class Player:
         self.target_y = msg["y"]
         self.direction = msg.get("direction", self.direction)
         self.moving = msg.get("moving", False)
+        self.z_index = msg.get("z_index")
         self.needs_save = True
 
         if "current_map" in msg:
