@@ -183,106 +183,173 @@ class PlayerController:
             elif current_map.opaque_alpha > target_alpha:
                 current_map.opaque_alpha = max(target_alpha, current_map.opaque_alpha - fade_speed)
 
+    # def draw(self, temp_surface, cam_rect, players, current_map):
+    #     """
+    #     Draw remote players relative to foreground opaque tiles based on z_index.
+    #     Local player is drawn last, always on top.
+    #     """
+    #     if not current_map:
+    #         return
+
+    #     # Gather only remote players on the same map
+    #     remote_players = [
+    #         p for p in players.values()
+    #         if getattr(p, "current_map", None) == self.player.current_map
+    #     ]
+
+    #     # If there are no foreground opaque tiles, draw remote players normally
+    #     if not hasattr(current_map, "foreground_opaque") or not current_map.foreground_opaque:
+    #         remote_players.sort(key=lambda p: getattr(p, "z_index", 0))
+    #         for p in remote_players:
+    #             frame = p.frames[p.direction][p.anim_frame]
+    #             draw_x = getattr(p, "render_x", p.x)
+    #             draw_y = getattr(p, "render_y", p.y)
+    #             temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
+    #     else:
+    #         # Draw remote players around foreground tiles
+    #         remaining_players = remote_players[:]
+    #         for tile in current_map.foreground_opaque:
+    #             fz = tile["z_index"]
+
+    #             # Draw players with z_index < tile's z_index
+    #             for p in [p for p in remaining_players if getattr(p, "z_index", 0) < fz]:
+    #                 frame = p.frames[p.direction][p.anim_frame]
+    #                 draw_x = getattr(p, "render_x", p.x)
+    #                 draw_y = getattr(p, "render_y", p.y)
+    #                 temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
+
+    #             # Remove drawn players
+    #             remaining_players = [p for p in remaining_players if getattr(p, "z_index", 0) >= fz]
+
+    #             # Draw the foreground tile
+    #             temp_surface.blit(tile["image"], (tile["rect"].x - cam_rect.x, tile["rect"].y - cam_rect.y))
+
+    #         # Draw remaining players (z_index >= highest foreground tile)s
+    #         for p in remaining_players:
+    #             frame = p.frames[p.direction][p.anim_frame]
+    #             draw_x = getattr(p, "render_x", p.x)
+    #             draw_y = getattr(p, "render_y", p.y)
+    #             temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
+
+    #     # --- Finally, draw the local player on top ---
+    #     frame = self.player.frames[self.player.direction][self.player.anim_frame]
+    #     temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
+
+
+
     def draw(self, temp_surface, cam_rect, players, current_map):
         """
-        Draw remote players relative to foreground opaque tiles based on z_index.
-        Local player is drawn last, always on top.
+        Draw remote players relative to foreground_opaque layer based on z_index.
+        Local player is always drawn last (on top of all layers).
+        This version is defensive and logs decisions for debugging.
         """
         if not current_map:
             return
 
-        # Gather only remote players on the same map
+        # Collect remote players on same map as local player
         remote_players = [
             p for p in players.values()
             if getattr(p, "current_map", None) == self.player.current_map
         ]
 
-        # If there are no foreground opaque tiles, draw remote players normally
-        if not hasattr(current_map, "foreground_opaque") or not current_map.foreground_opaque:
-            remote_players.sort(key=lambda p: getattr(p, "z_index", 0))
-            for p in remote_players:
+        # Ensure z_index exists and is int for each remote player (defensive)
+        for p in remote_players:
+            try:
+                p.z_index = int(getattr(p, "z_index", 0))
+            except Exception:
+                p.z_index = 0
+
+        # Sort remote players by z_index (lowest first)
+        remote_players.sort(key=lambda p: getattr(p, "z_index", 0))
+
+        # --- Resolve foreground_opaque z_index robustly ---
+        fg_opaque_z = None
+
+        # 1) Try GameMap.get_layer_by_name if available and layer has properties
+        try:
+            if hasattr(current_map, "get_layer_by_name"):
+                layer = current_map.get_layer_by_name("foreground_opaque")
+                if layer is not None:
+                    # many TMX wrappers put properties on `layer.properties`
+                    props = getattr(layer, "properties", None)
+                    if props is None:
+                        # some wrappers put them directly on layer
+                        props = getattr(layer, "props", None) or {}
+                    fg_opaque_z = int(props.get("z_index", 0))
+        except Exception:
+            fg_opaque_z = None
+
+        # 2) Try accessing tmxdata.layers
+        if fg_opaque_z is None:
+            try:
+                tmx = getattr(current_map, "tmx_data", getattr(current_map, "tmxdata", None))
+                if tmx is None:
+                    tmx = getattr(current_map, "tmx", None)
+                if tmx is not None and hasattr(tmx, "layers"):
+                    for lyr in tmx.layers:
+                        if getattr(lyr, "name", "").lower() == "foreground_opaque":
+                            props = getattr(lyr, "properties", None) or getattr(lyr, "props", None) or {}
+                            fg_opaque_z = int(props.get("z_index", 0))
+                            break
+            except Exception:
+                fg_opaque_z = None
+
+        # 3) Fallback: inspect current_map.opaque_tiles if present (take a representative z_index)
+        if fg_opaque_z is None:
+            try:
+                if hasattr(current_map, "opaque_tiles") and current_map.opaque_tiles:
+                    # opaque_tiles is a list of dicts {"rect":..., "z_index":...}
+                    # choose the most common or max - here we use the max so opaque layer
+                    # with higher z will hide more players (change if you prefer different behavior)
+                    fg_opaque_z = max(int(t.get("z_index", 0)) for t in current_map.opaque_tiles)
+            except Exception:
+                fg_opaque_z = None
+
+        # Final fallback to 0
+        if fg_opaque_z is None:
+            fg_opaque_z = 0
+
+        # Debug print: layer z and remote players z
+        #print(f"[DEBUG] foreground_opaque z_index resolved -> {fg_opaque_z}")
+        for p in remote_players:
+            rx = getattr(p, "render_x", p.x)
+            ry = getattr(p, "render_y", p.y)
+            #print(f"[DEBUG] Remote player id={getattr(p,'id',None)} z_index={p.z_index} pos=({rx:.1f},{ry:.1f})")
+
+        # --- Draw remote players with z < fg_opaque_z (before opaque layer) ---
+        drawn_before = []
+        for p in remote_players:
+            if p.z_index < fg_opaque_z:
                 frame = p.frames[p.direction][p.anim_frame]
                 draw_x = getattr(p, "render_x", p.x)
                 draw_y = getattr(p, "render_y", p.y)
                 temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
-        else:
-            # Draw remote players around foreground tiles
-            remaining_players = remote_players[:]
-            for tile in current_map.foreground_opaque:
-                fz = tile["z_index"]
+                drawn_before.append(p)
 
-                # Draw players with z_index < tile's z_index
-                for p in [p for p in remaining_players if getattr(p, "z_index", 0) < fz]:
-                    frame = p.frames[p.direction][p.anim_frame]
-                    draw_x = getattr(p, "render_x", p.x)
-                    draw_y = getattr(p, "render_y", p.y)
-                    temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
+        #print(f"[DEBUG] Drew {len(drawn_before)} remote players BEFORE foreground_opaque (z < {fg_opaque_z})")
 
-                # Remove drawn players
-                remaining_players = [p for p in remaining_players if getattr(p, "z_index", 0) >= fz]
+        # --- Draw the opaque layer (with alpha) ---
+        current_map.draw(
+            temp_surface,
+            offset=(-cam_rect.x, -cam_rect.y),
+            draw_only=["foreground_opaque"],
+            alpha=getattr(current_map, "opaque_alpha", None)
+        )
 
-                # Draw the foreground tile
-                temp_surface.blit(tile["image"], (tile["rect"].x - cam_rect.x, tile["rect"].y - cam_rect.y))
-
-            # Draw remaining players (z_index >= highest foreground tile)s
-            for p in remaining_players:
+        # --- Draw remaining remote players (z >= fg_opaque_z) ---
+        drawn_after = []
+        for p in remote_players:
+            if p.z_index >= fg_opaque_z:
                 frame = p.frames[p.direction][p.anim_frame]
                 draw_x = getattr(p, "render_x", p.x)
                 draw_y = getattr(p, "render_y", p.y)
                 temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
+                drawn_after.append(p)
 
-        # --- Finally, draw the local player on top ---
+        #print(f"[DEBUG] Drew {len(drawn_after)} remote players AFTER foreground_opaque (z >= {fg_opaque_z})")
+
+        # --- Finally draw the local player on top (unchanged) ---
         frame = self.player.frames[self.player.direction][self.player.anim_frame]
         temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
 
-
-
     
-    # def draw(self, temp_surface, cam_rect, players):
-    #     """
-    #     Draw the player on the given surface.
-
-    #     Args:
-    #         surface (pygame.Surface): The surface to draw the player on.
-    #     """
-        
-
-    #     # --- Step 3: Draw remote players with offset ---
-
-    #     # for p in players.values():
-    #     #     # if p.current_map != self.player.current_map:
-    #     #     #     continue  # skip players in other maps
-
-    #     #     # Skip remote players that have no map or different map
-    #     #     # This is still in testing for a multiplayer visibility issue (I001)
-    #     #     if not hasattr(p, "current_map") or p.current_map != self.player.current_map:
-    #     #         continue
-
-
-    #     #     frame = p.frames[p.direction][p.anim_frame]
-
-    #     #     draw_x = getattr(p, "render_x", p.x)
-    #     #     draw_y = getattr(p, "render_y", p.y)
-
-    #     #     temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
-
-    #     # Gather all players to draw: remote + local
-    #     all_players = list(players.values()) + [self.player]
-
-    #     # Filter out players on different maps
-    #     all_players = [p for p in all_players if getattr(p, "current_map", None) == self.player.current_map]
-
-    #     # Sort by z_index (lowest drawn first)
-    #     all_players.sort(key=lambda p: getattr(p, "z_index", 0))
-
-    #     # Draw each player
-    #     for p in all_players:
-    #         frame = p.frames[p.direction][p.anim_frame]
-    #         draw_x = getattr(p, "render_x", p.x)
-    #         draw_y = getattr(p, "render_y", p.y)
-    #         temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
-
-    #     # --- Step 4: Draw local player ---
-    #     frame = self.player.frames[self.player.direction][self.player.anim_frame]
-    #     temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
-        
