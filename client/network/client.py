@@ -189,17 +189,14 @@ class Client:
                         
                         print("[CLIENT] Set frozen True on current_scene")
 
-                        self.scene_manager.start_fade("game")
-                        print("[CLIENT] start_fade called")
-
-                        self.scene_manager.on_map_data_received(message["map"])
-                        print("[CLIENT] on_map_data_received called")
 
                         # Start fade and provide portal info for spawn
                         self.scene_manager.start_fade("game")
+                        print("[CLIENT] start_fade called")
 
                         # Once fade completes, load the map
                         self.scene_manager.on_map_data_received(message["map"])
+                        print("[CLIENT] on_map_data_received called")
                         #self.scene_manager.scenes["game"].player_controller.frozen = False
 
 

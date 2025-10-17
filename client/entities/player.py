@@ -73,15 +73,6 @@ class Player:
         new_y = self.y + move_y
         future_rect = self.get_hitbox(new_x, new_y)
 
-        # # Check collisions
-        # for collider in colliders:
-        #     if future_rect.colliderect(collider):
-        #         # Block movement along the axis that collides
-        #         if dx != 0:
-        #             move_x = 0
-        #         if dy != 0:
-        #             move_y = 0
-        #         future_rect = self.get_hitbox(self.x + move_x, self.y + move_y)
 
         for collider in colliders:
             if self.z_index == collider["z_level"]:

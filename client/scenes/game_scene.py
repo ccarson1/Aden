@@ -91,13 +91,21 @@ class GameScene:
         if self.current_map:
             self.current_map.update(dt)
 
+
         self.enemy_controller.update(dt, self.current_map)
         
         self.player_controller.update(dt, self.current_map, self.players, self.client, self.scene_manager, self.camera)
+
+        # Always update camera, even if player isn't moving
+        if self.current_map:
+            map_width = self.current_map.tmx_data.width * self.current_map.tmx_data.tilewidth
+            map_height = self.current_map.tmx_data.height * self.current_map.tmx_data.tileheight
+            self.camera.update(self.local_player, map_width, map_height)
         
 
         self.toast_manager.update()
         self.world_time.update(self.server_time)
+        
 
 
     def load_map(self, map_name):
@@ -122,67 +130,13 @@ class GameScene:
         for enemy in self.enemy_controller.enemies.values():
             enemy.current_map = self.map_name
 
-    # def draw(self, surface):
-    #     # Clear screen
-    #     surface.fill((0, 0, 0))
 
-    #     if not self.current_map:
-    #         text = self.font.render("Waiting for server...", True, (255, 255, 255))
-    #         surface.blit(text, (50, 50))
-    #         return
-
-    #     # --- Step 1: Make a temp surface the size of the camera viewport ---
-    #     cam_rect = self.camera.rect
-    #     temp_surface = pygame.Surface((cam_rect.width, cam_rect.height), pygame.SRCALPHA)
-    #     ox, oy = cam_rect.x, cam_rect.y 
-
-    #     # --- Step 2: Draw map with camera offset ---
-    #     self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
-    #                   draw_only=["background", "decoration"])
-
-
-
-    #     # --- Step 3: Draw local player and remmote players---
-    #     self.player_controller.draw(temp_surface, cam_rect, self.players)
-
-    #     # pass the camera rect so the enemy controller can convert world->screen
-    #     self.enemy_controller.draw(temp_surface, cam_rect, self.map_name)
-
-
-    #     self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
-    #                   draw_only=["foreground"])
-
-    #     # --- Step 4: Draw foreground_opaque with dynamic alpha ---
-    #     self.current_map.draw(temp_surface, offset=(-cam_rect.x, -cam_rect.y),
-    #                         draw_only=["foreground_opaque"],
-    #                         alpha=self.current_map.opaque_alpha)
-        
-    
-    #     # --- Step 5: Zoom ---
-    #     if self.camera.zoom != 1.0:
-    #         scaled = pygame.transform.scale(
-    #             temp_surface,
-    #             (int(cam_rect.width * self.camera.zoom), int(cam_rect.height * self.camera.zoom))
-    #         )
-    #         surface.blit(scaled, (0, 0))
-    #     else:
-    #         surface.blit(temp_surface, (0, 0))
-
-        
-    #     # --- Step: Apply lighting overlay ---
-    #     self.world_time.draw(surface, self.current_map, self.camera)
-
-
-    #     # Update + draw rain
-    #     # self.rain.update()
-    #     # self.rain.draw(surface)
-
-    #     #Update + draw snow
-    #     # self.snow.update()
-    #     # self.snow.draw(surface)
-
-    #     # draw toasts in top-right
-    #     self.toast_manager.draw(surface)
+        # --- Initialize camera position to player ---
+        map_width = self.current_map.tmx_data.width * self.current_map.tmx_data.tilewidth
+        map_height = self.current_map.tmx_data.height * self.current_map.tmx_data.tileheight
+        self.camera.rect.center = (self.local_player.rect.centerx, self.local_player.rect.centery)
+        self.camera.rect.clamp_ip(pygame.Rect(0, 0, map_width, map_height))
+        self.camera.initialized = True  # mark as initialized
 
     def draw(self, surface):
         # Clear screen
@@ -196,7 +150,6 @@ class GameScene:
         # --- Step 1: Make a temp surface the size of the camera viewport ---
         cam_rect = self.camera.rect
         temp_surface = pygame.Surface((cam_rect.width, cam_rect.height), pygame.SRCALPHA)
-        ox, oy = cam_rect.x, cam_rect.y
 
         # Helper: robustly get z_index for a named layer (defaults to 0)
         def _get_layer_z_index(map_obj, layer_name):
@@ -257,17 +210,6 @@ class GameScene:
             draw_only=["background", "decoration"]
         )
 
-        # Decide whether foreground_opaque should be drawn BEFORE player (if its z < player_z)
-        draw_fg_opaque_before_player = (fg_opaque_z < player_z)
-
-        # If we must draw foreground_opaque before the player, do it now (with alpha)
-        # if draw_fg_opaque_before_player:
-        #     self.current_map.draw(
-        #         temp_surface,
-        #         offset=(-cam_rect.x, -cam_rect.y),
-        #         draw_only=["foreground_opaque"],
-        #         alpha=self.current_map.opaque_alpha
-        #     )
 
         # --- Step 3: Draw local player and remote players ---
         self.player_controller.draw(temp_surface, cam_rect, self.players, self.current_map)
@@ -275,23 +217,14 @@ class GameScene:
         # pass the camera rect so the enemy controller can convert world->screen
         self.enemy_controller.draw(temp_surface, cam_rect, self.map_name)
 
+        
+
         # Draw regular foreground layer (unchanged and always after player in original code)
         self.current_map.draw(
             temp_surface,
             offset=(-cam_rect.x, -cam_rect.y),
             draw_only=["foreground"]
         )
-
-        # If foreground_opaque should be drawn after the player (z >= player_z), draw it now.
-        # if not draw_fg_opaque_before_player:
-        #     self.current_map.draw(
-        #         temp_surface,
-        #         offset=(-cam_rect.x, -cam_rect.y),
-        #         draw_only=["foreground_opaque"],
-        #         alpha=self.current_map.opaque_alpha
-        #     )
-
-        
 
         # --- Step 4: Zoom ---
         if self.camera.zoom != 1.0:

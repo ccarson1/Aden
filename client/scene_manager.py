@@ -78,18 +78,20 @@ class SceneManager:
             print(f"[WARN] Tried to switch to unknown scene '{scene_name}'")
 
     def update(self, dt):
+        # Fade out
         if self.fading_out:
             self.fade_alpha += self.fade_speed * dt
             if self.fade_alpha >= 255:
                 self.fade_alpha = 255
                 self.fading_out = False
 
-                # Switch scenes
+                # Switch to the next scene
                 self.current_scene = self.next_scene
                 self.next_scene = None
 
-                # If GameScene, send portal request to server
-                if isinstance(self.current_scene, GameScene) and self.server_info:
+                # If GameScene, freeze until map loads
+                if isinstance(self.current_scene, GameScene):
+                    self.current_scene.frozen = True
                     if self.pending_portal:
                         portal = self.pending_portal
                         self.current_scene.client.send_portal_enter(
@@ -101,30 +103,46 @@ class SceneManager:
                         )
                         self.pending_portal = None
 
-        # Handle fade-in
+                # Start fade-in immediately
+                self.fading_in = True
+                self.fade_alpha = 255
+
+        # Fade in
         elif self.fading_in:
             self.fade_alpha -= self.fade_speed * dt
             if self.fade_alpha <= 0:
                 self.fade_alpha = 0
                 self.fading_in = False
 
-        # Update the current scene
+        # Update scene only when not completely black (or always, depends on design)
         self.current_scene.update(dt)
+
 
     def on_map_data_received(self, map_name):
         """Called by the network client when the server sends map data."""
         if isinstance(self.current_scene, GameScene):
             self.current_scene.load_map(map_name)   # load TMX file
-            self.current_scene.frozen = False   # let the player move again
-        self.fading_in = True                   # start fade-in
+            self.current_scene.frozen = False       # let the player move again
+
+            # 🟢 Initialize the camera position immediately after map load
+            player = self.current_scene.local_player
+            cam = self.current_scene.camera
+            map_width = self.current_scene.current_map.tmx_data.width * self.current_scene.current_map.tmx_data.tilewidth
+            map_height = self.current_scene.current_map.tmx_data.height * self.current_scene.current_map.tmx_data.tileheight
+            cam.rect.center = player.rect.center
+            cam.rect.clamp_ip(pygame.Rect(0, 0, map_width, map_height))
+            cam.initialized = True
+
+        self.blackout = False
+        self.fading_in = True
         self.fade_alpha = 255
 
     def draw(self, surface):
-        """Draw current scene with fade overlay if active."""
+        # Draw the current scene always
         self.current_scene.draw(surface)
 
-        if self.fading_out or self.fading_in:
-            fade_surf = pygame.Surface(surface.get_size())
-            fade_surf.fill((0, 0, 0))
-            fade_surf.set_alpha(int(self.fade_alpha))
-            surface.blit(fade_surf, (0, 0))
+        # Overlay fade
+        fade_surf = pygame.Surface(surface.get_size())
+        fade_surf.fill((0, 0, 0))
+        fade_surf.set_alpha(int(self.fade_alpha))
+        surface.blit(fade_surf, (0, 0))
