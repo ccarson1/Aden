@@ -261,13 +261,13 @@ class GameScene:
         draw_fg_opaque_before_player = (fg_opaque_z < player_z)
 
         # If we must draw foreground_opaque before the player, do it now (with alpha)
-        if draw_fg_opaque_before_player:
-            self.current_map.draw(
-                temp_surface,
-                offset=(-cam_rect.x, -cam_rect.y),
-                draw_only=["foreground_opaque"],
-                alpha=self.current_map.opaque_alpha
-            )
+        # if draw_fg_opaque_before_player:
+        #     self.current_map.draw(
+        #         temp_surface,
+        #         offset=(-cam_rect.x, -cam_rect.y),
+        #         draw_only=["foreground_opaque"],
+        #         alpha=self.current_map.opaque_alpha
+        #     )
 
         # --- Step 3: Draw local player and remote players ---
         self.player_controller.draw(temp_surface, cam_rect, self.players, self.current_map)
@@ -283,13 +283,13 @@ class GameScene:
         )
 
         # If foreground_opaque should be drawn after the player (z >= player_z), draw it now.
-        if not draw_fg_opaque_before_player:
-            self.current_map.draw(
-                temp_surface,
-                offset=(-cam_rect.x, -cam_rect.y),
-                draw_only=["foreground_opaque"],
-                alpha=self.current_map.opaque_alpha
-            )
+        # if not draw_fg_opaque_before_player:
+        #     self.current_map.draw(
+        #         temp_surface,
+        #         offset=(-cam_rect.x, -cam_rect.y),
+        #         draw_only=["foreground_opaque"],
+        #         alpha=self.current_map.opaque_alpha
+        #     )
 
         
 

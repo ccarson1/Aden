@@ -310,21 +310,22 @@ class PlayerController:
             fg_opaque_z = 0
 
         # Debug print: layer z and remote players z
-        #print(f"[DEBUG] foreground_opaque z_index resolved -> {fg_opaque_z}")
-        for p in remote_players:
-            rx = getattr(p, "render_x", p.x)
-            ry = getattr(p, "render_y", p.y)
-            #print(f"[DEBUG] Remote player id={getattr(p,'id',None)} z_index={p.z_index} pos=({rx:.1f},{ry:.1f})")
-
+        # print(fg_opaque_z)
+        
         # --- Draw remote players with z < fg_opaque_z (before opaque layer) ---
         drawn_before = []
         for p in remote_players:
+            
             if p.z_index < fg_opaque_z:
                 frame = p.frames[p.direction][p.anim_frame]
                 draw_x = getattr(p, "render_x", p.x)
                 draw_y = getattr(p, "render_y", p.y)
                 temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
                 drawn_before.append(p)
+
+        if self.player.z_index < fg_opaque_z:
+            frame = self.player.frames[self.player.direction][self.player.anim_frame]
+            temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
 
         #print(f"[DEBUG] Drew {len(drawn_before)} remote players BEFORE foreground_opaque (z < {fg_opaque_z})")
 
@@ -346,10 +347,14 @@ class PlayerController:
                 temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
                 drawn_after.append(p)
 
+        if self.player.z_index >= fg_opaque_z:
+            frame = self.player.frames[self.player.direction][self.player.anim_frame]
+            temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
+
         #print(f"[DEBUG] Drew {len(drawn_after)} remote players AFTER foreground_opaque (z >= {fg_opaque_z})")
 
         # --- Finally draw the local player on top (unchanged) ---
-        frame = self.player.frames[self.player.direction][self.player.anim_frame]
-        temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
+        # frame = self.player.frames[self.player.direction][self.player.anim_frame]
+        # temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
 
     
