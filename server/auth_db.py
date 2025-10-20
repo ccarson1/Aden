@@ -3,6 +3,7 @@ import sqlite3
 import time
 import uuid
 import os
+import bcrypt
 
 DB_FILE = os.path.join(os.path.dirname(__file__), "auth.db")
 
@@ -55,7 +56,9 @@ def create_user(username, password):
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        # Hash the password
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        cur.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed))
         conn.commit()
         return True
     except sqlite3.IntegrityError:
@@ -67,10 +70,14 @@ def create_user(username, password):
 def verify_user(username, password):
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
-    cur.execute("SELECT id FROM users WHERE username=? AND password=?", (username, password))
+    cur.execute("SELECT password FROM users WHERE username=?", (username,))
     row = cur.fetchone()
     conn.close()
-    return row is not None
+    if row:
+        hashed = row[0]
+        # Compare hashed password
+        return bcrypt.checkpw(password.encode(), hashed)
+    return False
 
 
 def create_character(username, char_name):

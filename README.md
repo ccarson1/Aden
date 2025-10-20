@@ -11,3 +11,7 @@ python -m server.main
 git fetch origin
 
 git reset --hard origin/main
+
+#Generating a ssl certificate
+openssl req -x509 -nodes -days 365 -newkey rsa:4096 -keyout server.key -out server.crt -config openssl.cnf
+
