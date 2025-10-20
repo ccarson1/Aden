@@ -4,6 +4,9 @@
   <image source="../images/CL_MainLev.png" width="1024" height="992"/>
   <tile id="582">
    <properties>
+    <property name="player_index" type="int" value="1"/>
+    <property name="spawn_x" type="int" value="25"/>
+    <property name="spawn_y" type="int" value="300"/>
     <property name="target_map" value="grasslands_01"/>
    </properties>
   </tile>

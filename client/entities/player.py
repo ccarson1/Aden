@@ -129,3 +129,5 @@ class Player:
         if self.show_hitbox:
             pygame.draw.rect(surface, (255, 0, 0), self.get_hitbox(), 1)
 
+
+

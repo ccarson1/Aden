@@ -6,11 +6,12 @@ from assets.maps.map_loader import TileLayer, load_pygame
 from pytmx import TiledTileLayer
 
 class Portal:
-    def __init__(self, rect, target_map, spawn_x, spawn_y):
+    def __init__(self, rect, target_map, spawn_x, spawn_y, player_index):
         self.rect = rect
         self.target_map = target_map
         self.spawn_x = spawn_x
         self.spawn_y = spawn_y
+        self.player_index = player_index
         
 
 class GameMap:
@@ -140,15 +141,16 @@ class GameMap:
                         target_map = props.get("target_map")
                         spawn_x = props.get("spawn_x", 0)
                         spawn_y = props.get("spawn_y", 0)
+                        player_index = props.get("player_index", 0)
                         rect = pygame.Rect(
                             x * self.tmx_data.tilewidth,
                             y * self.tmx_data.tileheight,
                             self.tmx_data.tilewidth,
                             self.tmx_data.tileheight
                         )
-                        print(f"Tile ({x},{y}) gid={gid}, target_map={target_map}")  # debug
+                        print(f"Tile ({x},{y}) gid={gid}, target_map={target_map}, player_index={player_index}, sx={spawn_x}, sy={spawn_y}")  # debug
                         if target_map:
-                            self.portals.append(Portal(rect, target_map, int(float(spawn_x)), int(float(spawn_y))))
+                            self.portals.append(Portal(rect, target_map, int(float(spawn_x)), int(float(spawn_y)), player_index))
 
         print(f"Total portals loaded: {len(self.portals)}")
 

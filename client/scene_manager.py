@@ -101,6 +101,7 @@ class SceneManager:
                             self.server_info["ip"],
                             self.server_info["port"]
                         )
+                        self.current_scene.local_player.z_index = portal.player_index
                         self.pending_portal = None
 
                 # Start fade-in immediately
@@ -124,14 +125,15 @@ class SceneManager:
             self.current_scene.load_map(map_name)   # load TMX file
             self.current_scene.frozen = False       # let the player move again
 
-            # 🟢 Initialize the camera position immediately after map load
+            #Initialize the camera position immediately after map load
             player = self.current_scene.local_player
+            print(f"player x {player.x} : y {player.y}")
             cam = self.current_scene.camera
             map_width = self.current_scene.current_map.tmx_data.width * self.current_scene.current_map.tmx_data.tilewidth
             map_height = self.current_scene.current_map.tmx_data.height * self.current_scene.current_map.tmx_data.tileheight
             cam.rect.center = player.rect.center
             cam.rect.clamp_ip(pygame.Rect(0, 0, map_width, map_height))
-            cam.initialized = True
+            cam.initialized = False
 
         self.blackout = False
         self.fading_in = True

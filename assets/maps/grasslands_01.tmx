@@ -4,6 +4,9 @@
   <image source="../images/MainLev2.0.png" width="2048" height="1408"/>
   <tile id="1798">
    <properties>
+    <property name="player_index" type="int" value="0"/>
+    <property name="spawn_x" type="int" value="700"/>
+    <property name="spawn_y" type="int" value="400"/>
     <property name="target_map" value="forest_01"/>
    </properties>
   </tile>

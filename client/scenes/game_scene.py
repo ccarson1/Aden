@@ -61,7 +61,7 @@ class GameScene:
         self.rain = Rain(config.WIDTH, config.HEIGHT, density=450, fall_speed=15, wind=1, drop_length=8, thickness=1, overlay_color=(50, 50, 60), overlay_alpha=120)
         self.snow = Snow(config.WIDTH, config.HEIGHT, density=150, start_time=5000)
         self.tool_utilities = tool_utilities.ToolUtilities()
-        self.player_controller = PlayerController(self.local_player)
+        self.player_controller = PlayerController(self.local_player, self.font)
         self.enemy_controller = EnemyController()
 
     
@@ -87,6 +87,9 @@ class GameScene:
 
 
     def update(self, dt):
+
+        if not self.current_map:
+            return
         
         if self.current_map:
             self.current_map.update(dt)
@@ -101,6 +104,13 @@ class GameScene:
             map_width = self.current_map.tmx_data.width * self.current_map.tmx_data.tilewidth
             map_height = self.current_map.tmx_data.height * self.current_map.tmx_data.tileheight
             self.camera.update(self.local_player, map_width, map_height)
+
+        # Always update the camera if the player and map are ready
+        if self.local_player and self.current_map:
+            map_width = self.current_map.tmx_data.width * self.current_map.tmx_data.tilewidth
+            map_height = self.current_map.tmx_data.height * self.current_map.tmx_data.tileheight
+            self.camera.update(self.local_player, map_width, map_height)
+
         
 
         self.toast_manager.update()
@@ -126,17 +136,26 @@ class GameScene:
         print("[GAME] map loaded, unfreezing player_controller")
         self.player_controller.frozen = False
 
-        # 🟢 Sync enemy map names
+        #Sync enemy map names
         for enemy in self.enemy_controller.enemies.values():
             enemy.current_map = self.map_name
 
 
-        # --- Initialize camera position to player ---
+        # Recenter camera immediately after loading
         map_width = self.current_map.tmx_data.width * self.current_map.tmx_data.tilewidth
         map_height = self.current_map.tmx_data.height * self.current_map.tmx_data.tileheight
-        self.camera.rect.center = (self.local_player.rect.centerx, self.local_player.rect.centery)
+        self.camera.rect.x = self.local_player.rect.centerx - self.camera.width // 2
+        self.camera.rect.y = self.local_player.rect.centery - self.camera.height // 2
+
+        self.local_player.rect = self.local_player.get_hitbox()
+        self.camera.update(self.local_player, map_width, map_height)
+
+        # Clamp so we don’t go off the map
         self.camera.rect.clamp_ip(pygame.Rect(0, 0, map_width, map_height))
-        self.camera.initialized = True  # mark as initialized
+        self.camera.initialized = True
+
+        # Force one draw frame with the new camera
+        pygame.display.flip()
 
     def draw(self, surface):
         # Clear screen
