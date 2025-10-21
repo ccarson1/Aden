@@ -45,6 +45,7 @@ TIMEOUT = config.getfloat("network", "TIMEOUT")
 WIDTH = config.getint("display", "WIDTH")
 HEIGHT = config.getint("display", "HEIGHT")
 FONT_SIZE = config.getint("display", "FONT_SIZE")
+DISPLAY_NAME_FONT_SIZE = config.getint("display", "DISPLAY_NAME_FONT_SIZE")
 TOAST_FONT_SIZE = config.getint("display", "TOAST_FONT_SIZE")
 BUTTON_COLOR = tuple(map(int, config.get("display", "BUTTON_COLOR").split(",")))
 TEXT_COLOR = tuple(map(int, config.get("display", "TEXT_COLOR").split(",")))
@@ -52,6 +53,7 @@ TEXT_COLOR = tuple(map(int, config.get("display", "TEXT_COLOR").split(",")))
 # Auth
 TOKEN_CACHE_TTL = config.getint("auth", "TOKEN_CACHE_TTL")
 token_cache = {}  # Initialize manually
+CERT_DIR = config.get("auth", "cert_dir")
 
 # Game Save
 DB_REFRESH_INTERVAL = config.getint("game_save", "DB_REFRESH_INTERVAL")

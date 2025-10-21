@@ -2,6 +2,7 @@
 import msgpack, time
 from server import auth_db
 
+
 class MessageHandler:
     def __init__(self, sock, player_manager, lock):
         self.sock = sock
@@ -52,11 +53,28 @@ class MessageHandler:
 
     # ---------------- Utilities ----------------
     def _send_assign_id(self, pid, saved_data, addr):
+        
+
+        # Get the player object and username
+        player_obj = self.player_manager.clients.get(pid)
+        username = getattr(player_obj, "username", None)
+
+        # Fetch char_name from the database
+        char_name = auth_db.get_char_name(username) if username else f"Player{pid}"
+
+        # Assign it to the player instance (so it propagates in broadcasts)
+        player_obj.name = char_name
+
+        # Include name in the sent data
+        player_data = dict(saved_data)
+        player_data["name"] = char_name
+
+        # Send to client
         self.sock.sendto(
             msgpack.packb({
                 "type": "assign_id",
                 "player_id": pid,
-                "player_data": saved_data
+                "player_data": player_data
             }, use_bin_type=True),
             addr
         )

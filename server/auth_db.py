@@ -221,3 +221,19 @@ def get_username_from_token(token):
     if row:
         return row[0]
     return None
+
+def get_char_name(username):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT c.char_name
+        FROM characters c
+        JOIN users u ON c.user_id = u.id
+        WHERE u.username = ?
+        LIMIT 1
+    """, (username,))
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        return result[0]
+    return f"{username}_Char"

@@ -65,16 +65,21 @@ class PlayerManager:
 
     # ---------------- Player Creation ----------------
     def create_or_get_player(self, token, addr):
-        """Either create a new player or return the existing one."""
         if token not in self.tokens:
             pid = self.get_new_pid()
             self.tokens[token] = pid
             username = auth_db.get_username_from_token(token)
             saved_data = auth_db.load_player_state(username)
 
+            # 🔹 Get character name from DB
+            char_name = auth_db.get_char_name(username)
+            if not char_name:
+                char_name = f"Player{pid}"  # fallback
+
             # Create the Player instance
             new_player = player.Player(
-                pid, f"Player{pid}",
+                pid,
+                char_name,  # 🔹 use char_name instead of Player{pid}
                 frame_w=64, frame_h=64,
                 x=saved_data.get("x", 100),
                 y=saved_data.get("y", 100)
@@ -82,12 +87,13 @@ class PlayerManager:
             new_player.addr = addr
             new_player.direction = saved_data.get("direction", "down")
             new_player.current_map = saved_data.get("current_map", "DefaultMap")
-            new_player.z_index = saved_data.get("z_index", 0)  # <- Load from DB
-            new_player.username = username  # <- For autosave
+            new_player.z_index = saved_data.get("z_index", 0)
+            new_player.username = username
 
             self.clients[pid] = new_player
             self.last_seen[pid] = time.time()
-            print(f"[INFO] Assigned player ID {pid} to {username}")
+            print(f"[INFO] Assigned player ID {pid} to {username} ({char_name})")
+
             return pid, new_player, saved_data
         else:
             pid = self.tokens[token]
@@ -95,4 +101,5 @@ class PlayerManager:
             self.last_seen[pid] = time.time()
             existing_player.addr = addr
             return pid, existing_player, None
+
 

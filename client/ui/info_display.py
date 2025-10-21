@@ -1,10 +1,11 @@
-
+import config
+import pygame
 
 class InfoDisplay:
 
-    def __init__(self, player, font):
+    def __init__(self, player):
         self.player = player
-        self.font = font
+        self.font = pygame.font.SysFont(None, config.DISPLAY_NAME_FONT_SIZE)
 
     def display_player_name(self, surface, cam_rect):
         name_surface = self.font.render(self.player.name, True, (255, 255, 0))

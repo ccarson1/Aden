@@ -52,6 +52,8 @@ class Client:
                         self.local_player.id = self.local_player_id
                         if "player_data" in message:
                             data = message["player_data"]
+                            print(f"[CLIENT] Assigned Player ID: {self.local_player_id} with data: {data}")
+                            self.local_player.name = data.get("name", self.local_player.name)
                             self.local_player.x = data.get("x", 100)
                             self.local_player.y = data.get("y", 100)
                             self.local_player.direction = data.get("direction", "down")

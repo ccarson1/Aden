@@ -41,7 +41,7 @@ def start_server():
 
     # Background threads
     threading.Thread(target=utils.cleanup_inactive, daemon=True).start()
-    threading.Thread(target=neti.broadcast, args=(player_manager.clients, enemy_manager.enemies, sock), daemon=True).start()
+    threading.Thread(target=neti.broadcast, args=(player_manager, enemy_manager, sock), daemon=True).start()
     threading.Thread(target=utils.refresh_active_tokens_loop, daemon=True).start()
     threading.Thread(target=utils.autosave_loop, daemon=True).start()
 

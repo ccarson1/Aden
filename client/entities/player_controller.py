@@ -11,7 +11,7 @@ class PlayerController:
         self.font = font
         self.moving = False
         self.frozen = False
-        self.player_info_display = info_display.InfoDisplay(self.player, self.font)
+        self.player_info_display = info_display.InfoDisplay(self.player)
 
     def capture_input(self):
         """
@@ -299,23 +299,15 @@ class PlayerController:
                 temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
                 drawn_after.append(p)
 
-                # # 💬 Draw username above player
-                # name_surface = self.name_font.render(p.name, True, (255, 255, 255))
-                # name_rect = name_surface.get_rect(center=(draw_x - cam_rect.x + p.frame_w // 2, draw_y - cam_rect.y - 10))
-                # temp_surface.blit(name_surface, name_rect)
 
-                self.player_info_display.display_remote_player_name(temp_surface, draw_x, draw_y, cam_rect, p)
+            self.player_info_display.display_remote_player_name(temp_surface, draw_x, draw_y, cam_rect, p)
 
         if self.player.z_index >= fg_opaque_z:
             frame = self.player.frames[self.player.direction][self.player.anim_frame]
             temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
 
-            # # 💬 Draw username above local player
-            # name_surface = self.name_font.render(self.player.name, True, (255, 255, 0))
-            # name_rect = name_surface.get_rect(center=(self.player.x - cam_rect.x + self.player.frame_w // 2, self.player.y - cam_rect.y - 10))
-            # temp_surface.blit(name_surface, name_rect)
 
-            self.player_info_display.display_player_name(temp_surface, cam_rect)
+        self.player_info_display.display_player_name(temp_surface, cam_rect)
 
             
 

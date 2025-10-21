@@ -9,8 +9,11 @@ class Network:
         self.last_broadcast = time.time()
         self.lock = lock
 
-    def broadcast(self, clients, enemies, sock):
-        
+    def broadcast(self, player_manager, enemy_manager, sock):
+        self.player_manager = player_manager
+        self.enemy_manager = enemy_manager
+        self.clients = player_manager.clients
+        self.enemies = enemy_manager.enemies
         
         while self.running:
             now = time.time()
@@ -23,11 +26,11 @@ class Network:
 
             with self.lock:
                 # Interpolate positions first using real dt
-                for p in clients.values():
+                for p in self.clients.values():
                     player.interpolate_player(p, dt)
 
                 # Build state packet
-                for p in clients.values():
+                for p in self.clients.values():
                     state.append({
                         "id": p.id,
                         "name": p.name,
@@ -46,8 +49,9 @@ class Network:
                         "timestamp": p.last_update_time
                     })
 
-                for e in enemies.values():
-                    #print(getattr(e, "columns", 11))
+                enemy_manager.update_all(dt, self.clients) # Update enemies with dt and player info
+                for e in self.enemies.values():
+                    #print(f"Enemies: {e.type}")
                     enemy_state.append({
                         "id": e.id,
                         "type": e.type,
@@ -65,7 +69,7 @@ class Network:
                     })
 
                 # Broadcast to all clients
-                for p in clients.values():
+                for p in self.clients.values():
                     try:
                         sock.sendto(
                             msgpack.packb({
