@@ -9,11 +9,12 @@ class Network:
         self.last_broadcast = time.time()
         self.lock = lock
 
-    def broadcast(self, player_manager, enemy_manager, sock):
+    def broadcast(self, player_manager, enemy_manager, sock, game_map):
         self.player_manager = player_manager
         self.enemy_manager = enemy_manager
         self.clients = player_manager.clients
         self.enemies = enemy_manager.enemies
+        self.game_map = game_map
         
         while self.running:
             now = time.time()
@@ -49,9 +50,20 @@ class Network:
                         "timestamp": p.last_update_time
                     })
 
-                enemy_manager.update_all(dt, self.clients) # Update enemies with dt and player info
+                enemy_manager.update_all(dt, self.clients, self.game_map)  # Update enemies with dt and player info
+
+                enemy_state = []
                 for e in self.enemies.values():
-                    #print(f"Enemies: {e.type}")
+                    # Only send enemies on the same map as a player
+                    if not any(p.current_map == e.current_map for p in self.clients.values()):
+                        continue
+
+                    # Ensure z_index is always valid
+                    z = getattr(e, "z_index", 0)
+                    if z is None:
+                        z = 0
+                        e.z_index = 0  # fallback
+
                     enemy_state.append({
                         "id": e.id,
                         "type": e.type,
@@ -65,7 +77,8 @@ class Network:
                         "hp": getattr(e, "hp", 10),
                         "speed": getattr(e, "speed", 100.0),
                         "frame_speed": getattr(e, "frame_speed", 0.12),
-                        "directions": getattr(e, "directions", ["down"])
+                        "directions": getattr(e, "directions", ["down"]),
+                        "z_index": z,
                     })
 
                 # Broadcast to all clients

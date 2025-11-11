@@ -156,7 +156,8 @@ class Client:
                                         "hp": e.get("hp", 10),
                                         "speed": e.get("speed", 100.0),
                                         "frame_speed": e.get("frame_speed", 0.12),
-                                        "directions": e.get("directions", ["down"])
+                                        "directions": e.get("directions", ["down"]),
+                                        "z_index": e.get("z_index", 0)
                                     }
 
                                     if eid not in ec.enemies:

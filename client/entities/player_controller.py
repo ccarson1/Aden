@@ -188,7 +188,7 @@ class PlayerController:
 
 
 
-    def draw(self, temp_surface, cam_rect, players, current_map):
+    def draw(self, temp_surface, cam_rect, players, current_map, enemy_controller):
         """
         Draw remote players relative to foreground_opaque layer based on z_index.
         Local player is always drawn last (on top of all layers).
@@ -274,6 +274,16 @@ class PlayerController:
                 temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
                 drawn_before.append(p)
 
+        for e in enemy_controller.enemies.values():
+            if e.current_map != self.player.current_map:
+                continue
+            if e.z_index < fg_opaque_z:
+                # frame = e.frames[e.direction][e.anim_frame]
+                # draw_x = e.x - cam_rect.x
+                # draw_y = e.y - cam_rect.y
+                # temp_surface.blit(frame, (draw_x, draw_y))
+                e.draw(temp_surface, cam_rect)
+
         if self.player.z_index < fg_opaque_z:
             frame = self.player.frames[self.player.direction][self.player.anim_frame]
             temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
@@ -301,6 +311,16 @@ class PlayerController:
 
 
             self.player_info_display.display_remote_player_name(temp_surface, draw_x, draw_y, cam_rect, p)
+
+        for e in enemy_controller.enemies.values():
+            if e.current_map != self.player.current_map:
+                continue
+            if e.z_index >= fg_opaque_z:
+                # frame = e.frames[e.direction][e.anim_frame]
+                # draw_x = e.x - cam_rect.x
+                # draw_y = e.y - cam_rect.y
+                # temp_surface.blit(frame, (draw_x, draw_y))
+                e.draw(temp_surface, cam_rect)
 
         if self.player.z_index >= fg_opaque_z:
             frame = self.player.frames[self.player.direction][self.player.anim_frame]

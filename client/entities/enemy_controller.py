@@ -20,7 +20,8 @@ class EnemyController:
             hp=enemy_data.get("hp", 10),
             speed=enemy_data.get("speed", 100.0),
             frame_speed=enemy_data.get("frame_speed", 0.12),
-            directions=enemy_data.get("directions", ["down"])
+            directions=enemy_data.get("directions", ["down"]),
+            z_index=enemy_data.get("z_index", 0)
         )
         self.enemies[enemy_id] = enemy
 
@@ -29,7 +30,8 @@ class EnemyController:
             enemy.update(dt)
 
     def draw(self, surface, cam_rect, current_map_name=None):
-        for enemy in self.enemies.values():
+        for enemy in list(self.enemies.values()):
+            print(f"Enemy Z Index: {enemy.z_index}")
             if current_map_name and enemy.current_map != current_map_name:
                 continue
             draw_x = enemy.x - cam_rect.x

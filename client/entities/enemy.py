@@ -1,6 +1,7 @@
 
 import pygame
 import os
+import time
 
 # Map directions to row index (used only if you have multi-row sheets)
 DIRECTION_ROW = {
@@ -23,6 +24,8 @@ class Enemy:
         self.speed = kwargs.get("speed", 100.0)
         self.frame_speed = kwargs.get("frame_speed", 0.12)
         self.directions = kwargs.get("directions", ["down"])
+        self.z_index = kwargs.get("z_index", 0)
+        self.last_update_time = time.time() 
 
         # Movement
         self.prev_x = self.x
@@ -89,10 +92,7 @@ class Enemy:
         self.image = frames[self.frame_index]
 
     def update_movement(self, dt):
-        """Move toward target position if moving."""
-        if not self.moving:
-            return
-
+        """Interpolate smoothly toward target position."""
         dx = self.target_x - self.x
         dy = self.target_y - self.y
         distance = (dx**2 + dy**2)**0.5
@@ -100,6 +100,7 @@ class Enemy:
             self.moving = False
             return
 
+        # move step based on speed and dt
         step = self.speed * dt
         if step >= distance:
             self.x = self.target_x
@@ -108,6 +109,7 @@ class Enemy:
         else:
             self.x += dx / distance * step
             self.y += dy / distance * step
+            self.moving = True
 
     def update(self, dt):
         """Call each frame."""
@@ -120,3 +122,14 @@ class Enemy:
         self.direction = data.get("direction", self.direction)
         self.current_map = data.get("current_map", self.current_map)
         self.moving = data.get("moving", self.moving)
+        self.z_index = data.get("z_index", getattr(self, "z_index", 0))
+        self.last_update_time = time.time()
+
+    def draw(self, surface, cam_rect):
+        """
+        Draw the enemy's current frame relative to the camera.
+        """
+        frame = self.animations[self.direction][self.frame_index]
+        draw_x = self.x - cam_rect.x
+        draw_y = self.y - cam_rect.y
+        surface.blit(frame, (draw_x, draw_y))
