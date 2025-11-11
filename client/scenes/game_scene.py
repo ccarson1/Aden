@@ -157,6 +157,9 @@ class GameScene:
         # Force one draw frame with the new camera
         pygame.display.flip()
 
+    
+
+
     def draw(self, surface):
         # Clear screen
         surface.fill((0, 0, 0))
@@ -236,14 +239,10 @@ class GameScene:
         # pass the camera rect so the enemy controller can convert world->screen
         #self.enemy_controller.draw(temp_surface, cam_rect, self.map_name)
 
+        self.tool_utilities.draw_debug_boundaries(self.local_player, temp_surface, cam_rect, self.current_map)
         
 
-        # Draw regular foreground layer (unchanged and always after player in original code)
-        self.current_map.draw(
-            temp_surface,
-            offset=(-cam_rect.x, -cam_rect.y),
-            draw_only=["foreground"]
-        )
+        
 
         # --- Step 4: Zoom ---
         if self.camera.zoom != 1.0:
@@ -257,6 +256,8 @@ class GameScene:
 
         # --- Step: Apply lighting overlay ---
         self.world_time.draw(surface, self.current_map, self.camera)
+
+        
 
         # Update + draw rain (commented out in original)
         # self.rain.update()

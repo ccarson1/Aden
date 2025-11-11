@@ -2,6 +2,7 @@
 import pygame
 import os
 import time
+import config
 
 # Map directions to row index (used only if you have multi-row sheets)
 DIRECTION_ROW = {
@@ -133,3 +134,11 @@ class Enemy:
         draw_x = self.x - cam_rect.x
         draw_y = self.y - cam_rect.y
         surface.blit(frame, (draw_x, draw_y))
+
+        
+
+        # Draw the rectangle around the enemy
+        if config.SHOW_ENEMY_RECT:
+            rect_width, rect_height = frame.get_size()
+            rect = pygame.Rect(draw_x, draw_y, rect_width, rect_height)
+            pygame.draw.rect(surface, (0, 255, 0), rect, 2)  # green outline, thickness 2

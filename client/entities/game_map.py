@@ -166,6 +166,8 @@ class GameMap:
         for layer in self.layers:
             layer.update(dt)
 
+    
+
 
 
     def draw(self, surface, offset=(0,0), alpha=None, draw_only=None):

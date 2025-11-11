@@ -29,14 +29,14 @@ class EnemyController:
         for enemy in self.enemies.values():
             enemy.update(dt)
 
-    def draw(self, surface, cam_rect, current_map_name=None):
-        for enemy in list(self.enemies.values()):
-            print(f"Enemy Z Index: {enemy.z_index}")
-            if current_map_name and enemy.current_map != current_map_name:
-                continue
-            draw_x = enemy.x - cam_rect.x
-            draw_y = enemy.y - cam_rect.y
-            if enemy.image:
-                surface.blit(enemy.image, (draw_x, draw_y))
-            else:
-                pygame.draw.rect(surface, (255, 0, 0), (draw_x, draw_y, 32, 32))
+    # def draw(self, surface, cam_rect, current_map_name=None):
+    #     for enemy in list(self.enemies.values()):
+    #         print(f"Enemy Z Index: {enemy.z_index}")
+    #         if current_map_name and enemy.current_map != current_map_name:
+    #             continue
+    #         draw_x = enemy.x - cam_rect.x
+    #         draw_y = enemy.y - cam_rect.y
+    #         if enemy.image:
+    #             surface.blit(enemy.image, (draw_x, draw_y))
+    #         else:
+    #             pygame.draw.rect(surface, (255, 0, 0), (draw_x, draw_y, 32, 32))

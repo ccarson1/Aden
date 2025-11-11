@@ -59,6 +59,11 @@ CERT_DIR = config.get("auth", "cert_dir")
 DB_REFRESH_INTERVAL = config.getint("game_save", "DB_REFRESH_INTERVAL")
 SAVE_INTERVAL = config.getint("game_save", "SAVE_INTERVAL")
 
+# Debug
+SHOW_ENEMY_RECT = config.getboolean("debug", "SHOW_ENEMY_RECT")
+SHOW_COLLISION_TILES = config.getboolean("debug", "SHOW_COLLISION_TILES")
+PLAYER_SHOW_HITBOX = config.getboolean("debug", "PLAYER_SHOW_HITBOX")
+
 def save_network_settings(host, port):
     config.set("network", "HOST", host)
     config.set("network", "PORT", str(port))
