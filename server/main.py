@@ -9,7 +9,6 @@ from server.player_manager import PlayerManager
 from server.enemy_manager import EnemyManager
 from server.message_handler import MessageHandler
 from server.utility import Utility
-from server.game_map import GameMap
 import os
 
 running = True
@@ -25,10 +24,8 @@ AUTH_PORT = config.AUTH_PORT
 neti = Network(lock)
 player_manager = PlayerManager()
 enemy_manager = EnemyManager()
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-map_path = os.path.join(BASE_DIR, "../assets/maps/grasslands_01.tmx")
 
-game_map = GameMap(os.path.normpath(map_path))
+
 
 utils = None
 
@@ -47,7 +44,7 @@ def start_server():
 
     # Background threads
     threading.Thread(target=utils.cleanup_inactive, daemon=True).start()
-    threading.Thread(target=neti.broadcast, args=(player_manager, enemy_manager, sock, game_map), daemon=True).start()
+    threading.Thread(target=neti.broadcast, args=(player_manager, enemy_manager, sock), daemon=True).start()
     threading.Thread(target=utils.refresh_active_tokens_loop, daemon=True).start()
     threading.Thread(target=utils.autosave_loop, daemon=True).start()
 

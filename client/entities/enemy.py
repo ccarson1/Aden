@@ -26,7 +26,11 @@ class Enemy:
         self.frame_speed = kwargs.get("frame_speed", 0.12)
         self.directions = kwargs.get("directions", ["down"])
         self.z_index = kwargs.get("z_index", 0)
+        self.collision_padding = kwargs.get("collision_padding", 0)
+
         self.last_update_time = time.time() 
+
+        
 
         # Movement
         self.prev_x = self.x
@@ -93,29 +97,40 @@ class Enemy:
         self.image = frames[self.frame_index]
 
     def update_movement(self, dt):
-        """Interpolate smoothly toward target position."""
-        dx = self.target_x - self.x
-        dy = self.target_y - self.y
-        distance = (dx**2 + dy**2)**0.5
-        if distance == 0:
-            self.moving = False
-            return
-
-        # move step based on speed and dt
-        step = self.speed * dt
-        if step >= distance:
-            self.x = self.target_x
-            self.y = self.target_y
-            self.moving = False
-        else:
-            self.x += dx / distance * step
-            self.y += dy / distance * step
-            self.moving = True
+        """Smoothly interpolate toward the last known server position."""
+        interp_speed = 10.0  # adjust for smoothness
+        self.x += (self.target_x - self.x) * interp_speed * dt
+        self.y += (self.target_y - self.y) * interp_speed * dt
 
     def update(self, dt):
-        """Call each frame."""
+        # Smooth position interpolation
         self.update_movement(dt)
-        self.update_animation(dt)
+
+        # Determine if moving (based on small threshold)
+        # moving_now = abs(self.target_x - self.x) > 0.1 or abs(self.target_y - self.y) > 0.1
+        # self.moving = moving_now
+
+        # Animate only if moving or always animate for certain enemies
+        if self.moving:
+            self.update_animation(dt)
+        else:
+            self.frame_index = 0 
+
+        # Always sync rect and position together
+        if not hasattr(self, "rect"):
+            rect_w, rect_h = self.image.get_size()
+            self.rect = pygame.Rect(
+                self.x + self.collision_padding,
+                self.y + self.collision_padding,
+                rect_w - 2 * self.collision_padding,
+                rect_h - 2 * self.collision_padding
+            )
+        else:
+            self.rect.topleft = (round(self.x), round(self.y))
+
+        self.x, self.y = self.rect.topleft
+
+
 
     def apply_server_update(self, data):
         self.target_x = data.get("x", self.target_x)
@@ -131,8 +146,8 @@ class Enemy:
         Draw the enemy's current frame relative to the camera.
         """
         frame = self.animations[self.direction][self.frame_index]
-        draw_x = self.x - cam_rect.x
-        draw_y = self.y - cam_rect.y
+        draw_x = self.x - cam_rect.x - self.collision_padding
+        draw_y = self.y - cam_rect.y - self.collision_padding
         surface.blit(frame, (draw_x, draw_y))
 
         
@@ -140,5 +155,10 @@ class Enemy:
         # Draw the rectangle around the enemy
         if config.SHOW_ENEMY_RECT:
             rect_width, rect_height = frame.get_size()
-            rect = pygame.Rect(draw_x, draw_y, rect_width, rect_height)
-            pygame.draw.rect(surface, (0, 255, 0), rect, 2)  # green outline, thickness 2
+            rect = pygame.Rect(
+                draw_x + self.collision_padding,
+                draw_y + self.collision_padding,
+                rect_width - 2 * self.collision_padding,
+                rect_height - 2 * self.collision_padding
+            )
+            pygame.draw.rect(surface, (0, 255, 0), rect, 2)

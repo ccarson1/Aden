@@ -21,7 +21,8 @@ class EnemyController:
             speed=enemy_data.get("speed", 100.0),
             frame_speed=enemy_data.get("frame_speed", 0.12),
             directions=enemy_data.get("directions", ["down"]),
-            z_index=enemy_data.get("z_index", 0)
+            z_index=enemy_data.get("z_index", 0),
+            collision_padding=enemy_data.get("collision_padding", 0),
         )
         self.enemies[enemy_id] = enemy
 

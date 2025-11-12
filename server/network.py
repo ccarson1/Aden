@@ -9,12 +9,11 @@ class Network:
         self.last_broadcast = time.time()
         self.lock = lock
 
-    def broadcast(self, player_manager, enemy_manager, sock, game_map):
+    def broadcast(self, player_manager, enemy_manager, sock):
         self.player_manager = player_manager
         self.enemy_manager = enemy_manager
         self.clients = player_manager.clients
         self.enemies = enemy_manager.enemies
-        self.game_map = game_map
         
         while self.running:
             now = time.time()
@@ -50,7 +49,7 @@ class Network:
                         "timestamp": p.last_update_time
                     })
 
-                enemy_manager.update_all(dt, self.clients, self.game_map)  # Update enemies with dt and player info
+                enemy_manager.update_all(dt, self.clients)  # Update enemies with dt and player info
 
                 enemy_state = []
                 for e in self.enemies.values():
@@ -79,6 +78,7 @@ class Network:
                         "frame_speed": getattr(e, "frame_speed", 0.12),
                         "directions": getattr(e, "directions", ["down"]),
                         "z_index": z,
+                        "collision_padding": getattr(e, "collision_padding", 0),
                     })
 
                 # Broadcast to all clients
