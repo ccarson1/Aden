@@ -158,7 +158,8 @@ class Client:
                                         "frame_speed": e.get("frame_speed", 0.12),
                                         "directions": e.get("directions", ["down"]),
                                         "z_index": e.get("z_index", 0),
-                                        "collision_padding": e.get("collision_padding", 0),
+                                        "c_h_padding": e.get("c_h_padding", 0),
+                                        "c_v_padding": e.get("c_v_padding", 0),
                                         "moving": e.get("moving", True),
                                     }
 

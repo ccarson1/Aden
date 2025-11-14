@@ -29,7 +29,7 @@
   </tile>
   <tile id="8428">
    <properties>
-    <property name="z_level" type="int" value="1"/>
+    <property name="z_index" type="int" value="1"/>
    </properties>
   </tile>
  </tileset>

@@ -24,7 +24,12 @@ class Network:
             state = []
             enemy_state = []
 
+            
+            
+
             with self.lock:
+                # current_player_scenes = []
+                
                 # Interpolate positions first using real dt
                 for p in self.clients.values():
                     player.interpolate_player(p, dt)
@@ -48,6 +53,8 @@ class Network:
                         "z_index": getattr(p, "z_index", 0),
                         "timestamp": p.last_update_time
                     })
+                    # print(f"Player {p.id} on map {p.current_map}")
+                    # current_player_scenes.append(p.current_map)
 
                 enemy_manager.update_all(dt, self.clients)  # Update enemies with dt and player info
 
@@ -56,7 +63,8 @@ class Network:
                     # Only send enemies on the same map as a player
                     if not any(p.current_map == e.current_map for p in self.clients.values()):
                         continue
-
+                    #print(current_player_scenes)
+                    #if e.current_map in current_player_scenes:
                     # Ensure z_index is always valid
                     z = getattr(e, "z_index", 0)
                     if z is None:
@@ -78,7 +86,8 @@ class Network:
                         "frame_speed": getattr(e, "frame_speed", 0.12),
                         "directions": getattr(e, "directions", ["down"]),
                         "z_index": z,
-                        "collision_padding": getattr(e, "collision_padding", 0),
+                        "c_h_padding": getattr(e, "c_h_padding", 0),
+                        "c_v_padding": getattr(e, "c_v_padding", 0),
                     })
 
                 # Broadcast to all clients

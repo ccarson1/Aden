@@ -105,10 +105,10 @@ class GameMap:
                         
                         # Get z_level from tile properties (default 0)
                         props = self.tmx_data.get_tile_properties_by_gid(gid) or {}
-                        z_level = int(props.get("z_level", 0))
+                        z_index = int(props.get("z_index", 0))
                         
                         # Store both rect and z_level
-                        self.colliders.append({"rect": rect, "z_level": z_level})
+                        self.colliders.append({"rect": rect, "z_index": z_index})
 
         self.elevation_colliders = []
         for layer in self.tmx_data.layers:

@@ -75,7 +75,7 @@ class Player:
 
 
         for collider in colliders:
-            if self.z_index == collider["z_level"]:
+            if self.z_index == collider["z_index"]:
                 if future_rect.colliderect(collider["rect"]):
                     # Block movement along the axis that collides
                     if dx != 0:
@@ -91,7 +91,7 @@ class Player:
 
         # --- Update player z_index if colliding with elevation tile ---
         for elevation in elevations:
-            # Only consider elevation tiles (assuming they have 'z_level' set)
+            # Only consider elevation tiles (assuming they have 'z_index' set)
             if "z_index" in elevation and self.rect.colliderect(elevation["rect"]):
                 print(f"Evevation tile index: {elevation['z_index']} ")
                 if self.z_index != elevation["z_index"]:

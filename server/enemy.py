@@ -6,7 +6,7 @@ from server.game_map import GameMap
 
 class Enemy:
     def __init__(self, eid, x, y, rows, columns, enemy_type="slime",
-                 current_map="Test_01", frame_speed=0.12, speed=60, cpadding=0):
+                 current_map="Test_01", frame_speed=0.12, speed=60, c_v_pad=0, c_h_pad=0):
         self.id = eid
         self.type = enemy_type
         self.x = x
@@ -42,9 +42,11 @@ class Enemy:
         frame_width = sheet_width // self.columns
         frame_height = sheet_height // self.rows
 
-        self.collision_padding = cpadding
+        #self.collision_padding = cpadding
+        self.c_h_padding = c_h_pad
+        self.c_v_padding = c_v_pad
 
-        self.rect = pygame.Rect(x  , y , frame_width - 2 * self.collision_padding, frame_height - 2 * self.collision_padding)
+        self.rect = pygame.Rect(x  , y , frame_width - 2 * self.c_h_padding, frame_height - 2 * self.c_v_padding)
 
     def distance_to(self, x, y):
         dx = x - self.x
@@ -63,37 +65,56 @@ class Enemy:
         if not self.moving:
             return
 
+        # Direction to target
         dx = self.target_x - self.x
         dy = self.target_y - self.y
         distance = (dx**2 + dy**2)**0.5
+
         if distance == 0:
             self.moving = False
             return
 
-        # Calculate step
+        # Movement step
         step = self.speed * dt
-        step_ratio = min(step / distance, 1)  # avoid overshoot
-        new_x = self.x + dx * step_ratio
-        new_y = self.y + dy * step_ratio
+        step_ratio = min(step / distance, 1)
 
-        # --- Collision check ---
-        # Check corners of enemy rect at the new position
-        rect_width, rect_height = self.rect.width, self.rect.height
-        corners = [
-            (new_x, new_y),  # top-left
-            (new_x + rect_width, new_y),  # top-right
-            (new_x, new_y + rect_height),  # bottom-left
-            (new_x + rect_width, new_y + rect_height)  # bottom-right
-        ]
-        if any(game_map.is_collision_tile(cx, cy) for cx, cy in corners):
-            # Stop movement if collision detected
-            self.moving = False
-            return
+        move_x = dx * step_ratio
+        move_y = dy * step_ratio
 
-        # Apply movement
-        self.x = new_x
-        self.y = new_y
+        # Predict movement
+        future_rect = pygame.Rect(
+            self.x + move_x,
+            self.y + move_y,
+            self.rect.width,
+            self.rect.height
+        )
+
+        # --- Collider Blocking (same as PLAYER) ---
+        for collider in game_map.colliders:
+            if collider["z_index"] == self.z_index:
+                if future_rect.colliderect(collider["rect"]):
+                    # Block axis independently (matches player logic)
+                    if abs(move_x) > 0:
+                        move_x = 0
+                    if abs(move_y) > 0:
+                        move_y = 0
+                    # Rebuild the rect after axis-block
+                    future_rect = pygame.Rect(
+                        self.x + move_x,
+                        self.y + move_y,
+                        self.rect.width,
+                        self.rect.height
+                    )
+
+        # --- Apply movement ---
+        self.x += move_x
+        self.y += move_y
         self.rect.topleft = (self.x, self.y)
+
+        # If you can't move on either axis, stop moving completely
+        if move_x == 0 and move_y == 0:
+            self.moving = False
+
 
     def update(self, dt, players):
         """Update movement towards closest player and z_index."""

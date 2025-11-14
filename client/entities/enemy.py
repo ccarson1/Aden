@@ -1,16 +1,7 @@
-
 import pygame
 import os
 import time
 import config
-
-# Map directions to row index (used only if you have multi-row sheets)
-DIRECTION_ROW = {
-    "down": 0,
-    "left": 1,
-    "right": 2,
-    "up": 3
-}
 
 class Enemy:
     def __init__(self, eid, **kwargs):
@@ -18,32 +9,38 @@ class Enemy:
         self.x = kwargs.get("x", 0)
         self.y = kwargs.get("y", 0)
         self.rows = kwargs.get("rows", 1)
-        self.columns = kwargs.get("columns", 11)
+        self.columns = kwargs.get("columns", 1)  # full width columns for the sheet
         self.type = kwargs.get("enemy_type", "green-slime")
         self.current_map = kwargs.get("current_map", "Test_01")
         self.hp = kwargs.get("hp", 10)
         self.speed = kwargs.get("speed", 100.0)
         self.frame_speed = kwargs.get("frame_speed", 0.12)
-        self.directions = kwargs.get("directions", ["down"])
         self.z_index = kwargs.get("z_index", 0)
-        self.collision_padding = kwargs.get("collision_padding", 0)
+        self.c_h_padding = kwargs.get("c_h_padding", 0)
+        self.c_v_padding = kwargs.get("c_v_padding", 0)
 
-        self.last_update_time = time.time() 
-
-        
-
-        # Movement
-        self.prev_x = self.x
-        self.prev_y = self.y
+        # Movement & state
         self.target_x = self.x
         self.target_y = self.y
         self.moving = True
+        self.attacking = False
 
         # Animation state
-        self.direction = self.directions[0] if self.directions else "down"
+        self.direction = kwargs.get("directions", ["down"])[0]
         self.frame_index = 0
         self.frame_timer = 0
         self.image = None
+
+        # Columns per animation type
+        self.move_cols = kwargs.get("move-cols", self.columns)
+        self.idle_cols = kwargs.get("idle-cols", self.columns)
+        self.attack_cols = kwargs.get("attack-cols", self.columns)
+        self.max_cols = max(self.move_cols, self.idle_cols, self.attack_cols)
+
+        # Must provide mapping of direction -> row index
+        if "direction_row" not in kwargs:
+            raise ValueError("Enemy must be initialized with direction_row from EnemyController")
+        self.direction_row = kwargs["direction_row"]
 
         # Load sprite sheet
         sprite_path = f"assets/enemies/{self.type}.png"
@@ -52,113 +49,131 @@ class Enemy:
 
         sheet = pygame.image.load(sprite_path).convert_alpha()
         sheet_width, sheet_height = sheet.get_size()
-        frame_width = sheet_width // self.columns
         frame_height = sheet_height // self.rows
+        full_frame_width = sheet_width // self.max_cols  # real width of a frame in sheet
 
-        print(f"Rows: {self.rows}")
-        print(f"columns: {self.columns}")
-
-        # Crop frames
+        # Build animations dynamically
         self.animations = {}
-        for row_idx in range(self.rows):
-            # If there is only one direction, just use "down"
-            direction_name = self.directions[row_idx] if row_idx < len(self.directions) else f"row{row_idx}"
-            frames = []
-            for col_idx in range(self.columns):
-                rect = pygame.Rect(
-                    col_idx * frame_width,
-                    row_idx * frame_height,
-                    frame_width,
-                    frame_height
-                )
-                frames.append(sheet.subsurface(rect).copy())
-            self.animations[direction_name] = frames
+        for name, row_idx in self.direction_row.items():
+            if "-idle" in name:
+                frames_count = self.idle_cols
+            elif "-attack" in name:
+                frames_count = self.attack_cols
+            else:
+                frames_count = self.move_cols
 
-        # Default image
-        self.image = list(self.animations.values())[0][0]
+            frames = []
+            for i in range(frames_count):
+                rect_x = i * full_frame_width
+                rect_y = row_idx * frame_height
+
+                # Clamp rect inside sheet
+                rect_x = min(rect_x, sheet_width - full_frame_width)
+                rect_y = min(rect_y, sheet_height - frame_height)
+
+                rect = pygame.Rect(rect_x, rect_y, full_frame_width, frame_height)
+                frames.append(sheet.subsurface(rect).copy())
+
+            self.animations[name] = frames
+            
+
+        # Fallback image
+        self.image = next(iter(self.animations.values()))[0]
+
+
+        print(self.animations.keys())
+        for anim in self.animations.keys():
+            print(f" {anim} animation {self.animations[anim]} with {len(self.animations[anim])} frames.")
+
+    def update_movement(self, dt):
+        interp_speed = 10.0
+        self.x += (self.target_x - self.x) * interp_speed * dt
+        self.y += (self.target_y - self.y) * interp_speed * dt
+        threshold = 0.5
+        self.moving = abs(self.target_x - self.x) > threshold or abs(self.target_y - self.y) > threshold
 
     def update_animation(self, dt):
-        """Animate the sprite based on movement and direction."""
-        frames = self.animations.get(self.direction)
-        if not frames:
-            # fallback to first row if direction missing
-            frames = list(self.animations.values())[0]
+        dx = self.target_x - self.x
+        dy = self.target_y - self.y
 
-        if len(frames) <= 1:
-            self.image = frames[0]
-            return
+        # Determine base direction
+        if abs(dx) > abs(dy):
+            base_dir = "right" if dx > 0 else "left"
+        else:
+            base_dir = "down" if dy > 0 else "up"
 
+        # Determine animation type
+        if self.attacking:
+            desired_dir = f"{base_dir}-attack"
+        elif not self.moving:
+            desired_dir = f"{base_dir}-idle"
+        else:
+            desired_dir = base_dir
 
+        # Fallback if animation missing
+        if desired_dir not in self.animations:
+            desired_dir = base_dir
+        if desired_dir not in self.animations:
+            desired_dir = next(iter(self.animations.keys()))
+
+        # Change direction resets frame
+        if self.direction != desired_dir:
+            self.direction = desired_dir
+            self.frame_index = 0
+            self.frame_timer = 0
+
+        # Animate frame
+        frames = self.animations[self.direction]
         self.frame_timer += dt
         if self.frame_timer >= self.frame_speed:
             self.frame_timer -= self.frame_speed
-            self.frame_index = (self.frame_index + 1) % len(frames)
+            self.frame_index += 1
+
+            # **Skip last two frames for idle animations**
+            if "-idle" in self.direction:
+                if self.frame_index >= len(frames) - 2:
+                    self.frame_index = 0  # loop back to start
+            else:
+                self.frame_index %= len(frames)
 
         self.image = frames[self.frame_index]
 
-    def update_movement(self, dt):
-        """Smoothly interpolate toward the last known server position."""
-        interp_speed = 10.0  # adjust for smoothness
-        self.x += (self.target_x - self.x) * interp_speed * dt
-        self.y += (self.target_y - self.y) * interp_speed * dt
 
     def update(self, dt):
-        # Smooth position interpolation
         self.update_movement(dt)
-
-        # Determine if moving (based on small threshold)
-        # moving_now = abs(self.target_x - self.x) > 0.1 or abs(self.target_y - self.y) > 0.1
-        # self.moving = moving_now
-
-        # Animate only if moving or always animate for certain enemies
-        if self.moving:
-            self.update_animation(dt)
-        else:
-            self.frame_index = 0 
-
-        # Always sync rect and position together
+        self.update_animation(dt)
         if not hasattr(self, "rect"):
-            rect_w, rect_h = self.image.get_size()
-            self.rect = pygame.Rect(
-                self.x + self.collision_padding,
-                self.y + self.collision_padding,
-                rect_w - 2 * self.collision_padding,
-                rect_h - 2 * self.collision_padding
-            )
+            w, h = self.image.get_size()
+            self.rect = pygame.Rect(self.x + self.c_h_padding, self.y + self.c_v_padding,
+                                    w - 2*self.c_h_padding, h - 2*self.c_v_padding)
         else:
             self.rect.topleft = (round(self.x), round(self.y))
-
-        self.x, self.y = self.rect.topleft
-
-
 
     def apply_server_update(self, data):
         self.target_x = data.get("x", self.target_x)
         self.target_y = data.get("y", self.target_y)
-        self.direction = data.get("direction", self.direction)
         self.current_map = data.get("current_map", self.current_map)
         self.moving = data.get("moving", self.moving)
-        self.z_index = data.get("z_index", getattr(self, "z_index", 0))
-        self.last_update_time = time.time()
+        self.z_index = data.get("z_index", self.z_index)
+        self.attacking = data.get("attacking", self.attacking)
 
     def draw(self, surface, cam_rect):
-        """
-        Draw the enemy's current frame relative to the camera.
-        """
-        frame = self.animations[self.direction][self.frame_index]
-        draw_x = self.x - cam_rect.x - self.collision_padding
-        draw_y = self.y - cam_rect.y - self.collision_padding
+        frames = self.animations[self.direction]
+
+        # If this is an idle animation, skip the last 2 frames
+        if "-idle" in self.direction:
+            max_index = max(0, len(frames) - (self.max_cols - self.idle_cols))  # ensure at least 1 frame
+            frame_index = min(self.frame_index, max_index)
+        else:
+            frame_index = self.frame_index
+
+        frame = frames[frame_index]
+        draw_x = self.x - cam_rect.x - self.c_h_padding
+        draw_y = self.y - cam_rect.y - self.c_v_padding
         surface.blit(frame, (draw_x, draw_y))
 
-        
-
-        # Draw the rectangle around the enemy
         if config.SHOW_ENEMY_RECT:
-            rect_width, rect_height = frame.get_size()
-            rect = pygame.Rect(
-                draw_x + self.collision_padding,
-                draw_y + self.collision_padding,
-                rect_width - 2 * self.collision_padding,
-                rect_height - 2 * self.collision_padding
-            )
+            w, h = frame.get_size()
+            rect = pygame.Rect(draw_x + self.c_h_padding, draw_y + self.c_v_padding,
+                               w - 2*self.c_h_padding, h - 2*self.c_v_padding)
             pygame.draw.rect(surface, (0, 255, 0), rect, 2)
