@@ -271,10 +271,13 @@ class PlayerController:
                 frame = p.frames[p.direction][p.anim_frame]
                 draw_x = getattr(p, "render_x", p.x)
                 draw_y = getattr(p, "render_y", p.y)
-                temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
+                #temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
+
+                p.draw(temp_surface, cam_rect, draw_x, draw_y)
+
                 drawn_before.append(p)
 
-        for e in enemy_controller.enemies.values():
+        for e in list(enemy_controller.enemies.values()):
             if e.current_map != self.player.current_map:
                 continue
             if e.z_index < fg_opaque_z:
@@ -282,11 +285,15 @@ class PlayerController:
                 # draw_x = e.x - cam_rect.x
                 # draw_y = e.y - cam_rect.y
                 # temp_surface.blit(frame, (draw_x, draw_y))
-                e.draw(temp_surface, cam_rect)
+                e.draw(temp_surface, cam_rect, self.player.current_map)
+
+                drawn_before.append(e)
 
         if self.player.z_index < fg_opaque_z:
             frame = self.player.frames[self.player.direction][self.player.anim_frame]
-            temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
+            #temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
+            self.player.draw(temp_surface, cam_rect, self.player.x, self.player.y)
+            drawn_before.append(self.player)
 
         #print(f"[DEBUG] Drew {len(drawn_before)} remote players BEFORE foreground_opaque (z < {fg_opaque_z})")
 
@@ -306,13 +313,15 @@ class PlayerController:
                 frame = p.frames[p.direction][p.anim_frame]
                 draw_x = getattr(p, "render_x", p.x)
                 draw_y = getattr(p, "render_y", p.y)
-                temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
+                #temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
+                p.draw(temp_surface, cam_rect, draw_x, draw_y)
+
                 drawn_after.append(p)
 
 
             self.player_info_display.display_remote_player_name(temp_surface, draw_x, draw_y, cam_rect, p)
 
-        for e in enemy_controller.enemies.values():
+        for e in list(enemy_controller.enemies.values()):
             if e.current_map != self.player.current_map:
                 continue
             if e.z_index >= fg_opaque_z:
@@ -320,11 +329,14 @@ class PlayerController:
                 # draw_x = e.x - cam_rect.x
                 # draw_y = e.y - cam_rect.y
                 # temp_surface.blit(frame, (draw_x, draw_y))
-                e.draw(temp_surface, cam_rect)
+                e.draw(temp_surface, cam_rect, self.player.current_map)
+                drawn_after.append(e)
 
         if self.player.z_index >= fg_opaque_z:
             frame = self.player.frames[self.player.direction][self.player.anim_frame]
-            temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
+            #temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
+            self.player.draw(temp_surface, cam_rect, self.player.x, self.player.y)
+            drawn_after.append(self.player)
 
 
         self.player_info_display.display_player_name(temp_surface, cam_rect)

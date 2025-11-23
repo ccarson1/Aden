@@ -121,13 +121,26 @@ class Player:
             self.anim_timer = 0
             self.anim_frame = (self.anim_frame + 1) % len(self.frames[self.direction])
 
-    def draw(self, surface):
-        """Draw player and optional hitbox."""
+    def draw(self, surface, cam_rect, render_x=None, render_y=None):
         frame = self.frames[self.direction][self.anim_frame]
-        surface.blit(frame, (self.x, self.y))
+
+        # --- Sync local player render coordinates ---
+        # self.render_x = self.x
+        # self.render_y = self.y
+
+        # Subtract camera offset
+        screen_x = render_x - cam_rect.x
+        screen_y = render_y - cam_rect.y
+
+        surface.blit(frame, (screen_x, screen_y))
 
         if self.show_hitbox:
-            pygame.draw.rect(surface, (255, 0, 0), self.get_hitbox(), 1)
+            # draw hitbox at render position
+            hitbox = self.get_hitbox(render_x, render_y)
+            hitbox_screen = hitbox.move(-cam_rect.x, -cam_rect.y)
+            pygame.draw.rect(surface, (255, 0, 0), hitbox_screen, 1)
+
+
 
 
 

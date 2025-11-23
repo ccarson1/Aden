@@ -40,6 +40,7 @@ class EnemyController:
         for enemy in list(self.enemies.values()):
             enemy.update(dt)
 
+
     # def draw(self, surface, cam_rect, current_map_name=None):
     #     for enemy in list(self.enemies.values()):
     #         print(f"Enemy Z Index: {enemy.z_index}")

@@ -136,9 +136,9 @@ class GameScene:
         print("[GAME] map loaded, unfreezing player_controller")
         self.player_controller.frozen = False
 
-        #Sync enemy map names
-        for enemy in self.enemy_controller.enemies.values():
-            enemy.current_map = self.map_name
+        # #Sync enemy map names
+        # for enemy in self.enemy_controller.enemies.values():
+        #     enemy.current_map = self.map_name
 
 
         # Recenter camera immediately after loading
@@ -259,11 +259,11 @@ class GameScene:
 
         
 
-        # Update + draw rain (commented out in original)
+        # #Update + draw rain (commented out in original)
         # self.rain.update()
         # self.rain.draw(surface)
 
-        # Update + draw snow (commented out in original)
+        # # Update + draw snow (commented out in original)
         # self.snow.update()
         # self.snow.draw(surface)
 

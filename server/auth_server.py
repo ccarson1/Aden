@@ -58,31 +58,50 @@ def start_auth_server():
     s.listen()
     s.settimeout(1.0)
 
-    # TLS context
-    context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    context.load_cert_chain(certfile=f"{config.CERT_DIR}server.crt", keyfile=f"{config.CERT_DIR}server.key")
-    print(f"[AUTH] TLS Auth Server running on {HOST}:{AUTH_PORT}")
+    # Toggle TLS here
+    USE_TLS = False
 
-    # Start token cleanup thread once
+    if USE_TLS:
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        context.load_cert_chain(
+            certfile=f"{config.CERT_DIR}server.crt",
+            keyfile=f"{config.CERT_DIR}server.key"
+        )
+        print(f"[AUTH] TLS Auth Server running on {HOST}:{AUTH_PORT}")
+    else:
+        context = None
+        print(f"[AUTH] NON-TLS Auth Server running on {HOST}:{AUTH_PORT}")
+
+    # Start token cleanup thread
     threading.Thread(target=token_cleanup_loop, daemon=True).start()
 
     try:
         while True:
             try:
                 conn, addr = s.accept()
-                try:
-                    tls_conn = context.wrap_socket(conn, server_side=True)
-                    threading.Thread(target=handle_client, args=(tls_conn, addr), daemon=True).start()
-                except ssl.SSLError as e:
-                    print(f"[TLS ERROR] Failed handshake from {addr}: {e}")
-                    conn.close()
+
+                # ---- FIXED: Only wrap if TLS is enabled ----
+                if context:
+                    try:
+                        conn = context.wrap_socket(conn, server_side=True)
+                    except ssl.SSLError as e:
+                        print(f"[TLS ERROR] Failed handshake from {addr}: {e}")
+                        conn.close()
+                        continue
+
+                # Normal non-TLS connection if context is None
+                threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
+
             except socket.timeout:
                 continue
+
     except KeyboardInterrupt:
         print("\n[AUTH] Shutting down server...")
+
     finally:
         s.close()
         sys.exit(0)
+
 
 
 if __name__ == "__main__":

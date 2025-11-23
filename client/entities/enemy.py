@@ -157,23 +157,32 @@ class Enemy:
         self.z_index = data.get("z_index", self.z_index)
         self.attacking = data.get("attacking", self.attacking)
 
-    def draw(self, surface, cam_rect):
+    def draw(self, surface, cam_rect, current_map_name=None, render_x=None, render_y=None):
+        if current_map_name and self.current_map != current_map_name:
+            return
+
+        if render_x is None:
+            render_x = self.x
+        if render_y is None:
+            render_y = self.y
+
         frames = self.animations[self.direction]
 
-        # If this is an idle animation, skip the last 2 frames
         if "-idle" in self.direction:
-            max_index = max(0, len(frames) - (self.max_cols - self.idle_cols))  # ensure at least 1 frame
+            max_index = max(0, len(frames) - (self.max_cols - self.idle_cols))
             frame_index = min(self.frame_index, max_index)
         else:
             frame_index = self.frame_index
 
         frame = frames[frame_index]
-        draw_x = self.x - cam_rect.x - self.c_h_padding
-        draw_y = self.y - cam_rect.y - self.c_v_padding
+
+        draw_x = render_x - cam_rect.x - self.c_h_padding
+        draw_y = render_y - cam_rect.y - self.c_v_padding
         surface.blit(frame, (draw_x, draw_y))
 
         if config.SHOW_ENEMY_RECT:
             w, h = frame.get_size()
             rect = pygame.Rect(draw_x + self.c_h_padding, draw_y + self.c_v_padding,
-                               w - 2*self.c_h_padding, h - 2*self.c_v_padding)
+                            w - 2*self.c_h_padding, h - 2*self.c_v_padding)
             pygame.draw.rect(surface, (0, 255, 0), rect, 2)
+
