@@ -58,6 +58,8 @@ class Client:
                             self.local_player.y = data.get("y", 100)
                             self.local_player.direction = data.get("direction", "down")
                             self.local_player.z_index = data.get("z_index", 0)
+                            self.local_player.class_type = data.get("class_type", "mage")
+                            print(f"[CLIENT] Character Name: {self.local_player.name}, Class Type: {self.local_player.class_type}")
                             if "current_map" in data:
                                 self.local_player.current_map = data["current_map"]
                                 # Tell GameScene to load it
@@ -76,6 +78,7 @@ class Client:
                                         p["x"],
                                         p["y"]
                                     )
+                                    player.class_type = p.get("class_type", "mage")
                                     player.render_x = p["x"]
                                     player.render_y = p["y"]
                                     # There is no Default map (I002)

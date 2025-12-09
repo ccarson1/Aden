@@ -32,7 +32,7 @@ def handle_client(conn, addr):
             success = auth_db.create_user(msg["username"], msg["password"])
             if success:
                 class_type = msg.get("class_type", "mage")
-                auth_db.create_character(msg["username"], msg["char_name"])
+                auth_db.create_character(msg["username"], msg["char_name"], class_type)
                 token = auth_db.get_token(msg["username"])
                 response = {"status": "ok", "token": token}
                 print(f"[AUTH] {msg['username']} created as {class_type}")

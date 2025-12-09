@@ -238,3 +238,17 @@ def get_char_name(username):
     if result:
         return result[0]
     return f"{username}_Char"
+
+def get_class_type(username):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT class_type
+        FROM characters c
+        JOIN users u ON c.user_id = u.id
+        WHERE u.username = ?
+        LIMIT 1
+    """, (username,))
+    result = cur.fetchone()
+    conn.close()
+    return result[0] if result else "mage"

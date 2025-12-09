@@ -18,6 +18,7 @@ class Player:
         self.ANIMATION_SPEED = 0.15  # seconds per frame
         self.show_hitbox = True
         self.z_index = 0
+        self.class_type = "mage" 
 
         # Interpolation state
         self.prev_x = x

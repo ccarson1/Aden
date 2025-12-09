@@ -14,7 +14,7 @@ class SceneManager:
         WIDTH, HEIGHT = config.WIDTH, config.HEIGHT
 
         # Initialize network client
-        self.client = Client("assets/sprites/Swordsman_lvl1_Walk_with_shadow.png")
+        self.client = Client("assets/sprites/character-spritesheet-without-weapon.png")
         self.client.set_scene_manager(self)
 
         # Initialize the network client once

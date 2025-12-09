@@ -13,6 +13,7 @@ class Player:
         self.current_map = None  # default map
         self.needs_save = False
         self.z_index = 0
+        self.class_type = "mage" 
 
         # Interpolation state
         self.prev_x = x

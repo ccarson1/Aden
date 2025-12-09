@@ -61,13 +61,16 @@ class MessageHandler:
 
         # Fetch char_name from the database
         char_name = auth_db.get_char_name(username) if username else f"Player{pid}"
+        class_type = auth_db.get_class_type(username) if username else "mage"
 
         # Assign it to the player instance (so it propagates in broadcasts)
         player_obj.name = char_name
+        player_obj.class_type = class_type
 
         # Include name in the sent data
         player_data = dict(saved_data)
         player_data["name"] = char_name
+        player_data["class_type"] = class_type
 
         # Send to client
         self.sock.sendto(
