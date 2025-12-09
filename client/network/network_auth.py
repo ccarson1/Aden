@@ -21,7 +21,7 @@ def authenticate(username, password, host=config.HOST, port=config.AUTH_PORT):
     return response
 
 
-def create_account(char_name, username, password, host=config.HOST, port=config.AUTH_PORT):
+def create_account(char_name, username, password, class_type="mage", host=config.HOST, port=config.AUTH_PORT):
 
     # Plain TCP socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,7 +31,8 @@ def create_account(char_name, username, password, host=config.HOST, port=config.
         "type": "create",
         "char_name": char_name,
         "username": username,
-        "password": password
+        "password": password,
+        "class_type": class_type
     }, use_bin_type=True))
 
     response = msgpack.unpackb(s.recv(1024), raw=False)

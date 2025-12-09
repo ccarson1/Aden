@@ -24,6 +24,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
         char_name TEXT NOT NULL,
+        class_type TEXT NOT NULL,
         FOREIGN KEY(user_id) REFERENCES users(id)
     )
     """)
@@ -80,7 +81,7 @@ def verify_user(username, password):
     return False
 
 
-def create_character(username, char_name):
+def create_character(username, char_name, class_type="mage"):
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
     cur.execute("SELECT id FROM users WHERE username=?", (username,))
@@ -89,7 +90,7 @@ def create_character(username, char_name):
         conn.close()
         return False
     user_id = user[0]
-    cur.execute("INSERT INTO characters (user_id, char_name) VALUES (?, ?)", (user_id, char_name))
+    cur.execute("INSERT INTO characters (user_id, char_name, class_type) VALUES (?, ?, ?)", (user_id, char_name, class_type))
     conn.commit()
     conn.close()
     return True

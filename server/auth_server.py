@@ -31,10 +31,11 @@ def handle_client(conn, addr):
         elif msg["type"] == "create":
             success = auth_db.create_user(msg["username"], msg["password"])
             if success:
+                class_type = msg.get("class_type", "mage")
                 auth_db.create_character(msg["username"], msg["char_name"])
                 token = auth_db.get_token(msg["username"])
                 response = {"status": "ok", "token": token}
-                print(f"[AUTH] {msg['username']} created")
+                print(f"[AUTH] {msg['username']} created as {class_type}")
 
         conn.sendall(msgpack.packb(response, use_bin_type=True))
 
