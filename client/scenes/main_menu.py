@@ -79,7 +79,7 @@ class MainMenu:
             elif self.new_char_button.is_clicked(event.pos):
                 self._new_char_action()
             elif self.start_local_server_button.is_clicked(event.pos):
-                    self._start_local_server_action()
+                self._start_local_server_action()
 
     # def _login_action(self):
     #     host = self.host_input.text.strip()

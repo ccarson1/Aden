@@ -81,9 +81,9 @@ class Enemy:
         self.image = next(iter(self.animations.values()))[0]
 
 
-        print(self.animations.keys())
-        for anim in self.animations.keys():
-            print(f" {anim} animation {self.animations[anim]} with {len(self.animations[anim])} frames.")
+        # print(self.animations.keys())
+        # for anim in self.animations.keys():
+        #     print(f" {anim} animation {self.animations[anim]} with {len(self.animations[anim])} frames.")
 
     def update_movement(self, dt):
         interp_speed = 10.0

@@ -51,7 +51,8 @@ class Network:
                         "frame_h": getattr(p, "frame_h", 64),
                         "current_map": getattr(p, "current_map", "Test_01"),
                         "z_index": getattr(p, "z_index", 0),
-                        "timestamp": p.last_update_time
+                        "timestamp": p.last_update_time,
+                        "attacking": getattr(p, "attacking", False),
                     })
                     # print(f"Player {p.id} on map {p.current_map}")
                     # current_player_scenes.append(p.current_map)

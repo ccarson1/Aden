@@ -1,6 +1,7 @@
 import time
 import pygame
 from client.ui import info_display
+import config
 
 class PlayerController:
     def __init__(self, player, font):
@@ -12,6 +13,8 @@ class PlayerController:
         self.moving = False
         self.frozen = False
         self.player_info_display = info_display.InfoDisplay(self.player)
+        self.last_click_time = 0
+        self.double_click_threshold = 250
 
     def capture_input(self):
         """
@@ -27,7 +30,11 @@ class PlayerController:
             "s": keys[pygame.K_s],
             "a": keys[pygame.K_a],
             "d": keys[pygame.K_d],
+            "shift": keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
         }
+
+
+
         return input_state
         
 
@@ -47,6 +54,7 @@ class PlayerController:
         dx = input_state["d"] - input_state["a"]
         dy = input_state["s"] - input_state["w"]
         moving = dx != 0 or dy != 0
+        
 
         # Move the player with collision detection
         if current_map:
@@ -76,40 +84,127 @@ class PlayerController:
     
     def update_remote_players(self, dt, client):
         """
-        Smoothly interpolate all remote players toward their server-reported target positions.
+        Smoothly interpolate remote players toward their server positions.
+        Only handle movement & render position here. Animation is updated elsewhere.
         """
         for player in client.players.values():
-            # Initialize render positions if they don't exist
-            if not hasattr(player, "render_x"):
-                player.render_x = player.x
-                player.render_y = player.y
+            if player.current_map != self.player.current_map:
+                continue
 
-            # Initialize target positions if missing
-            if not hasattr(player, "target_x"):
-                player.target_x = player.x
-            if not hasattr(player, "target_y"):
-                player.target_y = player.y
+            # Initialize render positions if missing
+            player.render_x = getattr(player, "render_x", player.x)
+            player.render_y = getattr(player, "render_y", player.y)
 
-            # Interpolation speed (units per second)
-            speed = getattr(player, "speed", 200.0)
-
-            # Compute distance to target
+            # Interpolation
+            interp_speed = 10.0
             dx = player.target_x - player.render_x
             dy = player.target_y - player.render_y
-            dist = (dx**2 + dy**2)**0.5
+            player.render_x += dx * min(dt * interp_speed, 1)
+            player.render_y += dy * min(dt * interp_speed, 1)
 
-            if dist > 0:
-                move_dist = min(dist, speed * dt)
-                player.render_x += dx / dist * move_dist
-                player.render_y += dy / dist * move_dist
-    
+            # Determine moving state
+            player.moving = abs(dx) > 0.5 or abs(dy) > 0.5
+
+            # Update direction based on movement
+            if player.moving:
+                if abs(dx) > abs(dy):
+                    player.direction = "right" if dx > 0 else "left"
+                else:
+                    player.direction = "down" if dy > 0 else "up"
+
+
+
+
+
+
+
+    def start_attack(self, camera):
+        mx, my = pygame.mouse.get_pos()
+
+        # --- Get camera rectangle safely ---
+        cam = getattr(camera, "cam_rect", None) or \
+            getattr(camera, "rect", None) or \
+            getattr(camera, "camera_rect", None)
+
+        if cam is None:
+            raise AttributeError("Camera has no rect, cam_rect, or camera_rect attribute")
+
+        # Player center relative to camera
+        px = self.player.x - cam.x + self.player.frame_w // 2
+        py = self.player.y - cam.y + self.player.frame_h // 2
+
+        # Compute distance from player to mouse
+        dx = mx - px
+        dy = my - py
+
+        # Choose attack direction based on which axis has greater distance
+        if abs(dx) > abs(dy):
+            self.player.attack_direction = "right" if dx > 0 else "left"
+        else:
+            self.player.attack_direction = "down" if dy > 0 else "up"
+
+        self.player.attacking = True
+        self.player.long_attacking = self.long_attack 
+        self.player.attack_anim_frame = 0
+        self.player.attack_anim_timer = 0
+
+        # Stop movement animation while attacking
+        self.moving = False
+        self.player.moving = False
+
+
     def update(self, dt, current_map, players, client, scene_manager, camera):
+
+        mouse_pressed = pygame.mouse.get_pressed()
+
+         # Initialize charging time if it doesn't exist
+        if not hasattr(self, "attack_hold_time"):
+            self.attack_hold_time = 0
+            self.charging_attack = False
+
+        # --- Hold & Release Long Attack ---
+        if mouse_pressed[0]:
+            # Accumulate hold time
+            self.attack_hold_time += dt * 1000  # ms
+            self.charging_attack = True
+
+            # Show the first attack frame while holding
+            self.player.attacking = True
+            self.player.long_attacking = False  # don't set long_attack yet
+            self.player.attack_direction = self.player.direction  # default direction while holding
+            self.player.attack_anim_frame = 0
+            self.player.attack_anim_timer = 0
+        else:
+            # Mouse released → decide attack
+            if self.charging_attack:
+                self.charging_attack = False
+
+                # Decide attack type based on hold duration
+                long_attack_threshold = 500  # milliseconds
+                if self.attack_hold_time >= long_attack_threshold:
+                    self.long_attack = True
+                else:
+                    self.long_attack = False
+
+                self.start_attack(camera)  # now start actual attack animation
+                self.attack_hold_time = 0  # reset for next attack
+
         if self.frozen:
             # --- Still update remote players so they animate correctly ---
             self.update_remote_players(dt, client)
             for p in players.values():
-                if p.current_map == self.player.current_map and p.moving:
+                if p.current_map != self.player.current_map:
+                    continue
+
+                if getattr(p, "attacking", False):
+                    p.update_attack_animation(dt)
+                    continue
+
+                # Moving?
+                if getattr(p, "moving", False):
                     p.update_animation(dt, moving=True)
+                else:
+                    p.update_animation(dt, moving=False)
 
             # --- Still send position to server (optional, keeps sync) ---
             client.send_move(
@@ -118,7 +213,8 @@ class PlayerController:
                 self.player.direction,
                 self.moving,
                 scene_manager.server_info["ip"],
-                scene_manager.server_info["port"]
+                scene_manager.server_info["port"],
+                self.player.attacking
             )
 
             # --- Still let camera follow player for fade transitions ---
@@ -152,8 +248,18 @@ class PlayerController:
         # --- Remote players ---
         self.update_remote_players(dt, client)
         for p in players.values():
-            if p.current_map == self.player.current_map and p.moving:
+            if p.current_map != self.player.current_map:
+                continue
+
+            if getattr(p, "attacking", False):
+                p.update_attack_animation(dt)
+                continue
+
+            # Moving?
+            if getattr(p, "moving", False):
                 p.update_animation(dt, moving=True)
+            else:
+                p.update_animation(dt, moving=False)
 
         # --- Send local move packet ---
         client.send_move(
@@ -162,7 +268,8 @@ class PlayerController:
             self.player.direction,
             self.moving,
             scene_manager.server_info["ip"],
-            scene_manager.server_info["port"]
+            scene_manager.server_info["port"],
+            self.player.attacking
         )
 
         # --- Camera follow ---
@@ -186,6 +293,9 @@ class PlayerController:
             elif current_map.opaque_alpha > target_alpha:
                 current_map.opaque_alpha = max(target_alpha, current_map.opaque_alpha - fade_speed)
 
+        self.player.update_attack_animation(dt)
+        # if hasattr(p, "attacking") and p.attacking:
+        #     p.update_attack_animation(dt)
 
 
     def draw(self, temp_surface, cam_rect, players, current_map, enemy_controller):

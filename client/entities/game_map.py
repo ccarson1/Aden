@@ -128,8 +128,8 @@ class GameMap:
 
                         # Store both rect and z_index
                         self.elevation_colliders.append({"rect": rect, "z_index": z_index})
-                        print(f"Evelation Colliders")
-                        print(self.elevation_colliders)
+                        # print(f"Evelation Colliders")
+                        # print(self.elevation_colliders)
 
         # --- Portals ---
         self.portals = []

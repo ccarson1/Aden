@@ -13,8 +13,74 @@ class SceneManager:
         self.font = font
         WIDTH, HEIGHT = config.WIDTH, config.HEIGHT
 
+        anim_meta = {
+            "direction_row": {
+                "down": 10,
+                "up": 8,
+                "left": 9,
+                "right": 11,
+                "down-running": 10,
+                "up-running": 8,
+                "left-running": 9,
+                "right-running": 11,
+                "down-idle": 24,
+                "up-idle": 22,
+                "left-idle": 23,
+                "right-idle": 25,
+                "down-attack": 37,
+                "up-attack": 35,
+                "left-attack": 36,
+                "right-attack": 38,
+                "down-longAttack": 33,
+                "up-longAttack": 31,
+                "left-longAttack": 32,
+                "right-longAttack": 34,
+
+            },
+            "idle-cols": 2,
+            "move-cols": 9,
+            "attack-cols": 6,
+            "longAttack-cols": 13,
+            "idle-width": 48,
+            "idle-height": 48,
+            "move-width": 48,
+            "move-height": 48,
+            "attack-width": 96,
+            "attack-height": 96,
+            "skip_frames": {
+                "down": 1,
+                "left": 1,
+                "right": 1,
+                "up": 1
+            },
+            "anim_speeds": {
+                "default": 0.2,
+                "-idle": 0.35,
+                "-attack": 0.08,
+                "-longAttack": 0.10
+            },
+            "anim_offsets": {
+                "down-attack": (-19, -28),
+                "up-attack": (-19, -28),
+                "left-attack": (-19, -28),
+                "right-attack": (-19, -28),
+                "down-longAttack": (-19, -28),
+                "up-longAttack": (-19, -28),
+                "left-longAttack": (-19, -28),
+                "right-longAttack": (-19, -28),
+                "down": (0, 0),
+                "up": (0, 0),
+                "left": (0, 0),
+                "right": (0, 0),
+                "down-idle": (0, 0),
+                "up-idle": (0, 0),
+                "left-idle": (0, 0),
+                "right-idle": (0, 0),
+            }
+        }
+
         # Initialize network client
-        self.client = Client("assets/sprites/character-spritesheet-without-weapon.png")
+        self.client = Client("assets/sprites/character-spritesheet-2.png", anim_meta)
         self.client.set_scene_manager(self)
 
         # Initialize the network client once

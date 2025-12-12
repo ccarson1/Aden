@@ -80,7 +80,6 @@ class PlayerManager:
             new_player = player.Player(
                 pid,
                 char_name,  # 🔹 use char_name instead of Player{pid}
-                frame_w=64, frame_h=64,
                 x=saved_data.get("x", 100),
                 y=saved_data.get("y", 100)
             )

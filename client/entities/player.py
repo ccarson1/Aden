@@ -1,26 +1,25 @@
+
+
 import pygame
 
-
 class Player:
-    def __init__(self, player_id, name, spritesheet, frame_w, frame_h, x=100, y=100):
+    def __init__(self, player_id, name, spritesheet, anim_meta=None, x=100, y=100):
         self.id = player_id
         self.name = name
         self.x = x
         self.y = y
         self.direction = "down"
+        self.attack_direction = self.direction
         self.anim_timer = 0
         self.anim_frame = 0
-        self.frame_w = frame_w
-        self.frame_h = frame_h
         self.current_map = None
-        self.speed = 100
-        self.MOVE_SPEED = 100  # pixels per second
-        self.ANIMATION_SPEED = 0.15  # seconds per frame
+        self.speed = 50
+        self.MOVE_SPEED = 100
         self.show_hitbox = True
         self.z_index = 0
-        self.class_type = "mage" 
+        self.class_type = "mage"
 
-        # Interpolation state
+        # Interpolation
         self.prev_x = x
         self.prev_y = y
         self.target_x = x
@@ -29,28 +28,103 @@ class Player:
         self.render_y = y
         self.last_update_time = 0.0
 
-        # Default padding for collision
+        # Padding
         self.pad_top = 40
         self.pad_bottom = 20
         self.pad_left = 30
         self.pad_right = 30
-        self.moving = False  # Is the player currently moving?
 
-        # Rect used for portal/collider detection (sync with hitbox)
+        self.moving = False
+        self.attacking = False
+        self.attack_anim_timer = 0
+        self.attack_anim_frame = 0
+        self.last_attack_anim = None
+        self.long_attacking = False
+
+        if anim_meta is None:
+            raise ValueError("Player requires anim_meta for dynamic animations")
+
+        self.anim_meta = anim_meta
+        self.spritesheet = spritesheet
+        self.frames = {}
+
+        # Load all frames
+        self.load_frames()
+
+        # Default frame size
+        self.frame_w = anim_meta.get("move-width", 64)
+        self.frame_h = anim_meta.get("move-height", 64)
+        self.image = next(iter(self.frames.values()))[0]
         self.rect = self.get_hitbox()
 
-        # Load animation frames
-        self.frames = {"down": [], "left": [], "right": [], "up": []}
-        cols = spritesheet.get_width() // frame_w
-        for row, dir_name in enumerate(["down", "left", "right", "up"]):
-            for col in range(cols):
-                frame = spritesheet.subsurface(
-                    pygame.Rect(col * frame_w, row * frame_h, frame_w, frame_h)
-                )
-                self.frames[dir_name].append(frame)
+    def load_frames(self):
+        meta = self.anim_meta
+        sheet_w, sheet_h = self.spritesheet.get_size()
+        skip_frames = meta.get("skip_frames", {})
+
+        print("\n========== LOADING PLAYER FRAMES ==========")
+
+        for anim_name, row_idx in meta.get("direction_row", {}).items():
+
+            if "-attack" in anim_name:
+                frame_w = meta.get("attack-width", meta.get("move-width", 64))
+                frame_h = meta.get("attack-height", meta.get("move-height", 64))
+                cols = meta.get("attack-cols", 6)
+            elif "-longAttack" in anim_name:
+                frame_w = meta.get("attack-width", 64)
+                frame_h = meta.get("attack-height", 64)
+                cols = meta.get("longAttack-cols", 13)
+            elif "-idle" in anim_name:
+                frame_w = meta.get("idle-width", 64)
+                frame_h = meta.get("idle-height", 64)
+                cols = meta.get("idle-cols", 1)
+            else:
+                frame_w = meta.get("move-width", 64)
+                frame_h = meta.get("move-height", 64)
+                cols = meta.get("move-cols", 1)
+
+            skip = skip_frames.get(anim_name, 0)
+            frames = []
+
+            print(f"\n[LOAD] Animation '{anim_name}'")
+            print(f"       Row: {row_idx}")
+            print(f"       Frame size: {frame_w}x{frame_h}")
+            print(f"       Columns: {cols}, Skip first: {skip}")
+
+            for i in range(skip, cols):
+                rect_x = i * frame_w
+                rect_y = row_idx * frame_h
+
+                # Bounds check instead of clamping
+                if rect_x + frame_w > sheet_w or rect_y + frame_h > sheet_h:
+                    print(f"       [SKIP] Frame {i}: OUT OF BOUNDS ({rect_x},{rect_y})")
+                    continue
+
+                try:
+                    frame = self.spritesheet.subsurface(
+                        pygame.Rect(rect_x, rect_y, frame_w, frame_h)
+                    ).copy()
+                    frames.append(frame)
+                    print(f"       [OK]   Frame {i}: ({rect_x},{rect_y})")
+
+                except Exception as e:
+                    print(f"       [ERR]  Frame {i}: ({rect_x},{rect_y}) - {e}")
+
+            self.frames[anim_name] = frames
+
+            print(f"       => Loaded {len(frames)} frames for '{anim_name}'")
+
+            if len(frames) == 0:
+                print(f"       !!! ERROR: NO FRAMES LOADED for '{anim_name}' !!!")
+
+            if len(frames) < cols - skip:
+                print(f"       !!! WARNING: Missing frames for '{anim_name}' !!!")
+
+        print("========== DONE LOADING FRAMES ==========\n")
+
+
 
     def get_hitbox(self, x=None, y=None):
-        """Return a collision rect with current padding."""
         if x is None: x = self.x
         if y is None: y = self.y
         return pygame.Rect(
@@ -61,12 +135,20 @@ class Player:
         )
 
     def move(self, dx, dy, dt, colliders, elevations):
-        """Move player, handle collisions, update direction & animation."""
-        if dx == 0 and dy == 0:
-            self.anim_frame = 0
+        moving = dx != 0 or dy != 0
+
+        if not moving:
+            anim_name = f"{self.direction}-idle"
+            anim_speed = self.get_anim_speed(anim_name)
+
+            self.anim_timer += dt
+            if self.anim_timer >= anim_speed:
+                self.anim_timer = 0
+                self.anim_frame = (self.anim_frame + 1) % len(self.frames[anim_name])
+
             return
 
-        # Calculate movement based on delta time
+        # --- Movement code remains unchanged ---
         move_x = dx * self.MOVE_SPEED * dt
         move_y = dy * self.MOVE_SPEED * dt
 
@@ -74,31 +156,20 @@ class Player:
         new_y = self.y + move_y
         future_rect = self.get_hitbox(new_x, new_y)
 
-
         for collider in colliders:
-            if self.z_index == collider["z_index"]:
-                if future_rect.colliderect(collider["rect"]):
-                    # Block movement along the axis that collides
-                    if dx != 0:
-                        move_x = 0
-                    if dy != 0:
-                        move_y = 0
-                    future_rect = self.get_hitbox(self.x + move_x, self.y + move_y)
+            if self.z_index == collider["z_index"] and future_rect.colliderect(collider["rect"]):
+                if dx != 0: move_x = 0
+                if dy != 0: move_y = 0
+                future_rect = self.get_hitbox(self.x + move_x, self.y + move_y)
 
-        # Apply movement
         self.x += move_x
         self.y += move_y
-        self.rect = future_rect  # update main rect for portal/collision checks
+        self.rect = future_rect
 
-        # --- Update player z_index if colliding with elevation tile ---
         for elevation in elevations:
-            # Only consider elevation tiles (assuming they have 'z_index' set)
             if "z_index" in elevation and self.rect.colliderect(elevation["rect"]):
-                print(f"Evevation tile index: {elevation['z_index']} ")
-                if self.z_index != elevation["z_index"]:
-                    print(f"[INFO] Player z_index changed: {self.z_index} -> {elevation['z_index']}")
                 self.z_index = elevation["z_index"]
-                break  # stop at first collision
+                break
 
         # Update direction
         if dx > 0: self.direction = "right"
@@ -106,42 +177,122 @@ class Player:
         if dy > 0: self.direction = "down"
         if dy < 0: self.direction = "up"
 
-        # Update animation
+        # Update movement animation
+        anim_name = self.direction
+
+        # Get speed from anim_meta
+        anim_speed = self.get_anim_speed(anim_name)
+
+
+
         self.anim_timer += dt
-        if self.anim_timer >= self.ANIMATION_SPEED:
+        if self.anim_timer >= anim_speed:
             self.anim_timer = 0
-            self.anim_frame = (self.anim_frame + 1) % len(self.frames[self.direction])
+            self.anim_frame = (self.anim_frame + 1) % len(self.frames[anim_name])
+
+    def get_anim_speed(self, anim_name):
+        speeds = self.anim_meta.get("anim_speeds", {})
+        if anim_name.endswith("-idle"):
+            return speeds.get("-idle", speeds.get("default", 0.35))
+        elif anim_name.endswith("-running"):
+            return speeds.get("-running", speeds.get("running", 0.1))
+        elif anim_name.endswith("-attack"):
+            return speeds.get("-attack", speeds.get("default", 0.1))
+        elif anim_name.endswith("-longAttack"):
+            return speeds.get("-longAttack", speeds.get("default", 0.1))
+        else:
+            return speeds.get("default", .02)
 
     def update_animation(self, dt, moving=True):
-        """Update animation independently (e.g., for other players)."""
-        if not moving:
-            self.anim_frame = 0
-            return
+        #anim_name = self.direction if moving else f"{self.direction}-idle"
+        if moving:
+            anim_name = self.direction
+        else:
+            anim_name = f"{self.direction}-idle"
+
+        anim_speed = self.get_anim_speed(anim_name)
+        #print(f"Updating animation '{anim_name}' at speed {anim_speed}")
+
+        
+
         self.anim_timer += dt
-        if self.anim_timer >= self.ANIMATION_SPEED:
+        if self.anim_timer >= anim_speed:
             self.anim_timer = 0
-            self.anim_frame = (self.anim_frame + 1) % len(self.frames[self.direction])
+            self.anim_frame = (self.anim_frame + 1) % len(self.frames[anim_name])
+
+    def update_attack_animation(self, dt):
+        if not self.attacking:
+            return
+        
+        # Only advance animation if it's not being charged
+        if getattr(self, "charging_attack", False):
+            self.attack_anim_frame = 0
+            self.attack_anim_timer = 0
+            return
+
+        anim_key = f"{self.attack_direction}-attack"
+        if anim_key not in self.frames:
+            print(f"[ERROR] Attack frames not found for '{anim_key}'")
+            return
+
+        frames = self.frames[anim_key]
+        speed = self.get_anim_speed(anim_key)
+
+        if getattr(self, "last_attack_anim", None) != anim_key:
+            self.attack_anim_frame = 0
+            self.attack_anim_timer = 0
+        self.last_attack_anim = anim_key
+
+        self.attack_anim_timer += dt
+        while self.attack_anim_timer >= speed:
+            self.attack_anim_timer -= speed
+            self.attack_anim_frame += 1
+            if self.attack_anim_frame >= len(frames):
+                self.attack_anim_frame = 0
+                self.attacking = False
+                self.last_attack_anim = None
+                print(f"[INFO] Attack animation '{anim_key}' finished")
+                break
+
+        print(f"[DEBUG] Attack animation '{anim_key}' frame {self.attack_anim_frame}/{len(frames)}")
+
+
 
     def draw(self, surface, cam_rect, render_x=None, render_y=None):
-        frame = self.frames[self.direction][self.anim_frame]
+        if render_x is None: render_x = self.x
+        if render_y is None: render_y = self.y
 
-        # --- Sync local player render coordinates ---
-        # self.render_x = self.x
-        # self.render_y = self.y
+        if self.attacking:
+            if self.long_attacking:
+                anim_key = f"{self.attack_direction}-longAttack"
+            else:
+                anim_key = f"{self.attack_direction}-attack"
+            print(f"[DRAW] Attacking, anim_key={anim_key}, frame={self.attack_anim_frame}")
+            print(self.anim_meta.keys())
+            #print(self.anim_meta[f"{anim_key}"])
+            print(f"{self.frames[anim_key][self.attack_anim_frame]}")
+            frame = self.frames[anim_key][self.attack_anim_frame]
+            print(f"Frames: {self.frames}")
+        else:
+            anim_key = f"{self.direction}-idle" if not self.moving else self.direction
+            #print(f"[DRAW] Moving/Idle, anim_key={anim_key}, frame={self.anim_frame}")
+            #print(f"[DRAW] Attack Animation Frame: {self.attack_anim_frame} / {len(self.frames.get(anim_key, []))}")
+            if anim_key != getattr(self, "last_anim", None):
+                self.anim_frame = 0
+                self.anim_timer = 0
+            self.last_anim = anim_key
+            self.anim_frame %= len(self.frames[anim_key])
+            frame = self.frames[anim_key][self.anim_frame]
 
-        # Subtract camera offset
-        screen_x = render_x - cam_rect.x
-        screen_y = render_y - cam_rect.y
+        # Apply offset from anim_meta if exists
+        offsets = self.anim_meta.get("anim_offsets", {})
+        x_off, y_off = offsets.get(anim_key, (0, 0))
+        screen_x = render_x - cam_rect.x + x_off
+        screen_y = render_y - cam_rect.y + y_off
 
         surface.blit(frame, (screen_x, screen_y))
 
         if self.show_hitbox:
-            # draw hitbox at render position
             hitbox = self.get_hitbox(render_x, render_y)
             hitbox_screen = hitbox.move(-cam_rect.x, -cam_rect.y)
             pygame.draw.rect(surface, (255, 0, 0), hitbox_screen, 1)
-
-
-
-
-

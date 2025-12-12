@@ -1,19 +1,18 @@
 import time
 
 class Player:
-    def __init__(self, player_id, name, frame_w, frame_h, x=100, y=100):
+    def __init__(self, player_id, name, x=100, y=100):
         self.id = player_id
         self.name = name
         self.x = x
         self.y = y
-        self.frame_w = frame_w
-        self.frame_h = frame_h
         self.direction = "down"
         self.moving = False
         self.current_map = None  # default map
         self.needs_save = False
         self.z_index = 0
         self.class_type = "mage" 
+        self.attacking = False
 
         # Interpolation state
         self.prev_x = x
@@ -22,6 +21,7 @@ class Player:
         self.target_y = y
         self.last_update_time = 0.0
         self.prev_map = self.current_map
+
 
     # ---------------- Player Updates ----------------
     def update_move(self, msg: dict):
@@ -34,6 +34,7 @@ class Player:
         self.moving = msg.get("moving", False)
         self.z_index = msg.get("z_index")
         self.needs_save = True
+        self.attacking = msg.get("attacking", False)
 
         if "current_map" in msg:
             self.current_map = msg["current_map"]

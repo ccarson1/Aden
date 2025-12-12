@@ -8,17 +8,20 @@ import time
 
 
 class Client:
-    def __init__(self, player_sprite_path, frame_w=64, frame_h=64):
+    def __init__(self, player_sprite_path, anim_meta, frame_w=64, frame_h=64):
         self.token = None
         self.client_socket = None
         self.local_player_id = None
-        self.local_player = Player(0, "Local", pygame.image.load(player_sprite_path).convert_alpha(), frame_w, frame_h)
+        self.local_player = Player(0, "Local", pygame.image.load(player_sprite_path).convert_alpha(), anim_meta=anim_meta)
+        # Debug: check attack frames for each direction
+        for dir in ["up", "down", "left", "right"]:
+            print(f"{dir}-attack frames:", len(self.local_player.frames.get(f"{dir}-attack", [])))
         self.players = {}
         self.player_sprite_path = player_sprite_path
         self.frame_w = frame_w
         self.frame_h = frame_h
         self.scene_manager = None
-        
+        self.anim_meta = anim_meta
 
 
     def connect(self, server_ip, server_port, token):
@@ -42,6 +45,7 @@ class Client:
             return
 
         def listen_server():
+
             while True:
                 try:
                     data, _ = self.client_socket.recvfrom(4096)
@@ -73,8 +77,6 @@ class Client:
                                         p["id"],
                                         p["name"],
                                         pygame.image.load(self.player_sprite_path).convert_alpha(),
-                                        p.get("frame_w", self.frame_w),
-                                        p.get("frame_h", self.frame_h),
                                         p["x"],
                                         p["y"]
                                     )
@@ -97,14 +99,14 @@ class Client:
                                 self.local_player.current_map = p.get("current_map", self.local_player.current_map)
                                 self.local_player.z_index = p.get("z_index", getattr(self.local_player, "z_index", 0))
                                 self.scene_manager.scenes["game"].server_time = message["world_time"]
+                                
                             else:
                                 if p["id"] not in self.players:
                                     player = Player(
                                         p["id"], 
                                         p["name"],
                                         pygame.image.load(self.player_sprite_path).convert_alpha(),
-                                        p.get("frame_w", self.frame_w),
-                                        p.get("frame_h", self.frame_h),
+                                        self.anim_meta,
                                         p["x"], 
                                         p["y"]
                                     )
@@ -138,6 +140,7 @@ class Client:
                                     player.moving = p["moving"]
                                     player.current_map = p.get("current_map", player.current_map)
                                     player.z_index = p.get("z_index", getattr(player, "z_index", 0))
+                                    player.attacking = p.get("attacking", False)
                             
                         # --- Sync enemies (if server sent them) ---
                         if "enemies" in message and self.scene_manager and self.scene_manager.current_scene:
@@ -236,7 +239,7 @@ class Client:
         }
         self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))
 
-    def send_move(self, x, y, direction, moving, server_ip, server_port):
+    def send_move(self, x, y, direction, moving, server_ip, server_port, attacking):
         if not self.token:
             return
         msg = {
@@ -247,7 +250,8 @@ class Client:
             "moving": moving,
             "current_map": self.local_player.current_map,
             "z_index": self.local_player.z_index,
-            "token": self.token
+            "token": self.token,
+            "attacking": self.local_player.attacking
         }
         self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))
 

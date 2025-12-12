@@ -16,7 +16,7 @@ class EnemyController:
         ]
 
     def add_enemy(self, enemy_id, enemy_data):
-        print(f"Enemy Controller-Enemy Data: {enemy_data}")
+        #print(f"Enemy Controller-Enemy Data: {enemy_data}")
         enemy = Enemy(
             eid=enemy_id,
             x=enemy_data.get("x", 0),
