@@ -40,6 +40,7 @@ class Player:
         self.attack_anim_frame = 0
         self.last_attack_anim = None
         self.long_attacking = False
+        self.running = False
 
         if anim_meta is None:
             raise ValueError("Player requires anim_meta for dynamic animations")
@@ -78,6 +79,10 @@ class Player:
                 frame_w = meta.get("idle-width", 64)
                 frame_h = meta.get("idle-height", 64)
                 cols = meta.get("idle-cols", 1)
+            elif "-running" in anim_name:
+                frame_w = meta.get("move-width", 64)
+                frame_h = meta.get("move-height", 64)
+                cols = meta.get("running-cols", 8)
             else:
                 frame_w = meta.get("move-width", 64)
                 frame_h = meta.get("move-height", 64)
@@ -203,58 +208,65 @@ class Player:
         else:
             return speeds.get("default", .02)
 
-    def update_animation(self, dt, moving=True):
-        #anim_name = self.direction if moving else f"{self.direction}-idle"
+    def update_animation(self, dt, moving=True, running=False):
+        # Determine animation key
         if moving:
-            anim_name = self.direction
+            if running:
+                anim_name = f"{self.direction}-running"
+            else:
+                anim_name = self.direction
         else:
             anim_name = f"{self.direction}-idle"
 
+        if anim_name not in self.frames:
+            anim_name = f"{self.direction}-idle"  # fallback
+
+        # 🔑 MINIMAL FIX: reset frame if animation changed
+        if getattr(self, "current_anim", None) != anim_name:
+            self.current_anim = anim_name
+            self.anim_frame = 0
+            self.anim_timer = 0
+
         anim_speed = self.get_anim_speed(anim_name)
-        #print(f"Updating animation '{anim_name}' at speed {anim_speed}")
-
-        
-
         self.anim_timer += dt
         if self.anim_timer >= anim_speed:
             self.anim_timer = 0
             self.anim_frame = (self.anim_frame + 1) % len(self.frames[anim_name])
 
-    def update_attack_animation(self, dt):
+    def update_attack_animation(self, dt, remote=False):
         if not self.attacking:
-            return
-        
-        # Only advance animation if it's not being charged
-        if getattr(self, "charging_attack", False):
-            self.attack_anim_frame = 0
-            self.attack_anim_timer = 0
             return
 
         anim_key = f"{self.attack_direction}-attack"
-        if anim_key not in self.frames:
-            print(f"[ERROR] Attack frames not found for '{anim_key}'")
+        if self.long_attacking:
+            anim_key = f"{self.attack_direction}-longAttack"
+
+        frames = self.frames.get(anim_key, [])
+        if not frames:
             return
 
-        frames = self.frames[anim_key]
-        speed = self.get_anim_speed(anim_key)
-
+        # Only reset frame if animation changed (local or remote)
         if getattr(self, "last_attack_anim", None) != anim_key:
             self.attack_anim_frame = 0
             self.attack_anim_timer = 0
         self.last_attack_anim = anim_key
 
+        speed = self.get_anim_speed(anim_key)
         self.attack_anim_timer += dt
+
         while self.attack_anim_timer >= speed:
             self.attack_anim_timer -= speed
             self.attack_anim_frame += 1
-            if self.attack_anim_frame >= len(frames):
-                self.attack_anim_frame = 0
-                self.attacking = False
-                self.last_attack_anim = None
-                print(f"[INFO] Attack animation '{anim_key}' finished")
-                break
 
-        print(f"[DEBUG] Attack animation '{anim_key}' frame {self.attack_anim_frame}/{len(frames)}")
+            if self.attack_anim_frame >= len(frames):
+                if not remote:
+                    # Local player stops automatically
+                    self.attacking = False
+                    self.attack_anim_frame = 0
+                    self.last_attack_anim = None
+                else:
+                    # Remote player: loop the animation instead of freezing
+                    self.attack_anim_frame = 0  # loop remote attack animation
 
 
 
@@ -274,7 +286,12 @@ class Player:
             frame = self.frames[anim_key][self.attack_anim_frame]
             print(f"Frames: {self.frames}")
         else:
-            anim_key = f"{self.direction}-idle" if not self.moving else self.direction
+            if not self.moving:
+                anim_key = f"{self.direction}-idle"
+            elif self.running:
+                anim_key = f"{self.direction}-running"
+            else:
+                anim_key = self.direction
             #print(f"[DRAW] Moving/Idle, anim_key={anim_key}, frame={self.anim_frame}")
             #print(f"[DRAW] Attack Animation Frame: {self.attack_anim_frame} / {len(self.frames.get(anim_key, []))}")
             if anim_key != getattr(self, "last_anim", None):

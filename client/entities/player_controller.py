@@ -40,31 +40,26 @@ class PlayerController:
 
 
     def apply_input(self, dt, current_map):
-        """
-        Apply movement input locally for client-side prediction.
-        
-        Args:
-            input_state (dict): Current directional inputs.
-            dt (float): Time delta since last frame (seconds).
-
-        Returns:
-            bool: True if the player moved this frame, False otherwise.
-        """
         input_state = self.capture_input()
         dx = input_state["d"] - input_state["a"]
         dy = input_state["s"] - input_state["w"]
         moving = dx != 0 or dy != 0
-        
+        running = moving and (input_state["shift"])
 
-        # Move the player with collision detection
         if current_map:
             self.player.move(dx, dy, dt, current_map.colliders, current_map.elevation_colliders)
-            #current_map = self.current_map
 
-        # Record input with timestamp for server reconciliation
+        # Save moving & running state on player itself
+        self.player.moving = moving
+        self.player.running = running
+
+        self.moving = moving
+        self.running = running
+
+        self.player.MOVE_SPEED = self.player.speed * (2.5 if running else 1.0)
+
         timestamp = time.time()
         self.input_history.append((timestamp, input_state))
-        self.moving = moving
 
         return moving
     
@@ -197,14 +192,14 @@ class PlayerController:
                     continue
 
                 if getattr(p, "attacking", False):
-                    p.update_attack_animation(dt)
+                    p.update_attack_animation(dt, remote=True)
                     continue
 
                 # Moving?
                 if getattr(p, "moving", False):
-                    p.update_animation(dt, moving=True)
+                    p.update_animation(dt, moving=True, running=p.running)
                 else:
-                    p.update_animation(dt, moving=False)
+                    p.update_animation(dt, moving=False, running=p.running)
 
             # --- Still send position to server (optional, keeps sync) ---
             client.send_move(
@@ -252,12 +247,12 @@ class PlayerController:
                 continue
 
             if getattr(p, "attacking", False):
-                p.update_attack_animation(dt)
+                p.update_attack_animation(dt, remote=True)
                 continue
 
             # Moving?
             if getattr(p, "moving", False):
-                p.update_animation(dt, moving=True)
+                p.update_animation(dt, moving=True, running=p.running)
             else:
                 p.update_animation(dt, moving=False)
 
@@ -378,7 +373,6 @@ class PlayerController:
         for p in remote_players:
             
             if p.z_index < fg_opaque_z:
-                frame = p.frames[p.direction][p.anim_frame]
                 draw_x = getattr(p, "render_x", p.x)
                 draw_y = getattr(p, "render_y", p.y)
                 #temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
@@ -400,7 +394,6 @@ class PlayerController:
                 drawn_before.append(e)
 
         if self.player.z_index < fg_opaque_z:
-            frame = self.player.frames[self.player.direction][self.player.anim_frame]
             #temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
             self.player.draw(temp_surface, cam_rect, self.player.x, self.player.y)
             drawn_before.append(self.player)
@@ -420,7 +413,6 @@ class PlayerController:
         drawn_after = []
         for p in remote_players:
             if p.z_index >= fg_opaque_z:
-                frame = p.frames[p.direction][p.anim_frame]
                 draw_x = getattr(p, "render_x", p.x)
                 draw_y = getattr(p, "render_y", p.y)
                 #temp_surface.blit(frame, (draw_x - cam_rect.x, draw_y - cam_rect.y))
@@ -443,7 +435,6 @@ class PlayerController:
                 drawn_after.append(e)
 
         if self.player.z_index >= fg_opaque_z:
-            frame = self.player.frames[self.player.direction][self.player.anim_frame]
             #temp_surface.blit(frame, (self.player.x - cam_rect.x, self.player.y - cam_rect.y))
             self.player.draw(temp_surface, cam_rect, self.player.x, self.player.y)
             drawn_after.append(self.player)

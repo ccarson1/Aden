@@ -1,3 +1,17 @@
+#1. Download and install python https://www.python.org/ (check the boxes to add python to path)
+
+#2. Download and extract repository
+
+#3. Open a command prompt in same directory (window start > cmd)
+
+#4. Create python virtual environment: python -n venv env
+
+#5. cd Aden
+
+#6. pip install -r requirements.txt
+
+#7. python -m client.main
+
 #Run Client 
 
 python -m client.main

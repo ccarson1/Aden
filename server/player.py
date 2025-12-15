@@ -13,6 +13,7 @@ class Player:
         self.z_index = 0
         self.class_type = "mage" 
         self.attacking = False
+        self.running = False
 
         # Interpolation state
         self.prev_x = x
@@ -31,10 +32,12 @@ class Player:
         self.target_x = msg["x"]
         self.target_y = msg["y"]
         self.direction = msg.get("direction", self.direction)
+        self.attack_direction = self.direction
         self.moving = msg.get("moving", False)
         self.z_index = msg.get("z_index")
         self.needs_save = True
         self.attacking = msg.get("attacking", False)
+        self.running = msg.get("running", False)
 
         if "current_map" in msg:
             self.current_map = msg["current_map"]

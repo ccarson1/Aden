@@ -90,6 +90,8 @@ class Client:
 
                     elif message["type"] == "update":
                         for p in message["players"]:
+                            #print(f"[DEBUG RECV] Player {p['id']} | pos=({p['x']},{p['y']}) moving={p.get('moving')} running={p.get('running')} direction={p.get('direction')} attacking={p.get('attacking')}")
+
                             if p["id"] == self.local_player_id:
                                 # Store server authoritative position
                                 self.local_player.server_x = p["x"]
@@ -99,6 +101,7 @@ class Client:
                                 self.local_player.current_map = p.get("current_map", self.local_player.current_map)
                                 self.local_player.z_index = p.get("z_index", getattr(self.local_player, "z_index", 0))
                                 self.scene_manager.scenes["game"].server_time = message["world_time"]
+                                
                                 
                             else:
                                 if p["id"] not in self.players:
@@ -137,10 +140,16 @@ class Client:
                                     player.target_y = p["y"]
                                     player.last_update_time = time.time()
                                     player.direction = p["direction"]
+                                    player.attack_direction = p["direction"]
                                     player.moving = p["moving"]
                                     player.current_map = p.get("current_map", player.current_map)
                                     player.z_index = p.get("z_index", getattr(player, "z_index", 0))
                                     player.attacking = p.get("attacking", False)
+                                    player.running = p.get("running", False)
+
+                                    if p.get('running'):
+                                        print(f"[SERVER UPDATE] Player {p['id']}: moving={p.get('moving')} running={p.get('running')}")
+
                             
                         # --- Sync enemies (if server sent them) ---
                         if "enemies" in message and self.scene_manager and self.scene_manager.current_scene:
@@ -251,8 +260,12 @@ class Client:
             "current_map": self.local_player.current_map,
             "z_index": self.local_player.z_index,
             "token": self.token,
-            "attacking": self.local_player.attacking
+            "attacking": self.local_player.attacking,
+            "running": self.local_player.running
         }
+        if self.local_player.running:
+            print(f"[DEBUG SEND] x={x:.1f} y={y:.1f} dir={direction} moving={moving} running={self.local_player.running} attacking={self.local_player.attacking}")
+
         self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))
 
     def set_scene_manager(self, scene_manager):

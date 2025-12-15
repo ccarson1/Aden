@@ -53,8 +53,10 @@ class Network:
                         "z_index": getattr(p, "z_index", 0),
                         "timestamp": p.last_update_time,
                         "attacking": getattr(p, "attacking", False),
+                        "running": getattr(p, "running", False),
                     })
-                    # print(f"Player {p.id} on map {p.current_map}")
+                    if getattr(p, "running"):
+                        print(f"Player {p.id} on map {p.running}")
                     # current_player_scenes.append(p.current_map)
 
                 enemy_manager.update_all(dt, self.clients)  # Update enemies with dt and player info
