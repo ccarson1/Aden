@@ -146,6 +146,9 @@ class Client:
                                     player.z_index = p.get("z_index", getattr(player, "z_index", 0))
                                     player.attacking = p.get("attacking", False)
                                     player.running = p.get("running", False)
+                                    player.jumping = p.get("jumping", False)
+                                    player.long_attacking = p.get("long_attacking", False)
+                                    player.charging_attack = p.get("charging_attack", False)
 
                                     if p.get('running'):
                                         print(f"[SERVER UPDATE] Player {p['id']}: moving={p.get('moving')} running={p.get('running')}")
@@ -248,7 +251,7 @@ class Client:
         }
         self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))
 
-    def send_move(self, x, y, direction, moving, server_ip, server_port, attacking):
+    def send_move(self, x, y, direction, moving, server_ip, server_port, attacking, running, jumping, long_attacking, charging_attack):
         if not self.token:
             return
         msg = {
@@ -261,10 +264,13 @@ class Client:
             "z_index": self.local_player.z_index,
             "token": self.token,
             "attacking": self.local_player.attacking,
-            "running": self.local_player.running
+            "running": self.local_player.running,
+            "jumping": self.local_player.jumping,
+            "long_attacking": self.local_player.long_attacking,
+            "charging_attack": self.local_player.charging_attack
         }
-        if self.local_player.running:
-            print(f"[DEBUG SEND] x={x:.1f} y={y:.1f} dir={direction} moving={moving} running={self.local_player.running} attacking={self.local_player.attacking}")
+        # if self.local_player.running:
+        #     print(f"[DEBUG SEND] x={x:.1f} y={y:.1f} dir={direction} moving={moving} running={self.local_player.running} attacking={self.local_player.attacking}")
 
         self.client_socket.sendto(msgpack.packb(msg, use_bin_type=True), (server_ip, server_port))
 

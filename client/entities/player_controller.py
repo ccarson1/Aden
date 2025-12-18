@@ -30,7 +30,8 @@ class PlayerController:
             "s": keys[pygame.K_s],
             "a": keys[pygame.K_a],
             "d": keys[pygame.K_d],
-            "shift": keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+            "shift": keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT],
+            "space": keys[pygame.K_SPACE],
         }
 
 
@@ -44,17 +45,36 @@ class PlayerController:
         dx = input_state["d"] - input_state["a"]
         dy = input_state["s"] - input_state["w"]
         moving = dx != 0 or dy != 0
-        running = moving and (input_state["shift"])
+        running = moving and input_state["shift"]
+        jumping = input_state["space"]
 
+        # --- Handle jump timer & minimum duration ---
+        if jumping and not getattr(self, "jump_timer", None):
+            print("[DEBUG] Jump started")
+            self.player.jumping = True
+            self.jump_timer = 0  # start jump timer
+        
+        if getattr(self, "jump_timer", None) is not None:
+            print(f"[DEBUG] Jump timer: {self.jump_timer:.2f}s")
+            self.jump_timer += dt
+            jump_anim_duration = 0.9  # seconds
+            if self.jump_timer >= jump_anim_duration:
+                self.player.jumping = False
+                self.jump_timer = None
+
+        # --- Apply movement ---
         if current_map:
             self.player.move(dx, dy, dt, current_map.colliders, current_map.elevation_colliders)
 
-        # Save moving & running state on player itself
+        # Save moving & running state
         self.player.moving = moving
         self.player.running = running
+        # Note: don't overwrite jumping here anymore
+        # self.player.jumping = jumping
 
         self.moving = moving
         self.running = running
+        self.jumping = self.player.jumping
 
         self.player.MOVE_SPEED = self.player.speed * (2.5 if running else 1.0)
 
@@ -62,6 +82,7 @@ class PlayerController:
         self.input_history.append((timestamp, input_state))
 
         return moving
+
     
     def check_portals(self, current_map, scene_manager):
         """
@@ -96,6 +117,7 @@ class PlayerController:
             dy = player.target_y - player.render_y
             player.render_x += dx * min(dt * interp_speed, 1)
             player.render_y += dy * min(dt * interp_speed, 1)
+            
 
             # Determine moving state
             player.moving = abs(dx) > 0.5 or abs(dy) > 0.5
@@ -155,13 +177,12 @@ class PlayerController:
          # Initialize charging time if it doesn't exist
         if not hasattr(self, "attack_hold_time"):
             self.attack_hold_time = 0
-            self.charging_attack = False
 
         # --- Hold & Release Long Attack ---
         if mouse_pressed[0]:
             # Accumulate hold time
             self.attack_hold_time += dt * 1000  # ms
-            self.charging_attack = True
+            self.player.charging_attack = True
 
             # Show the first attack frame while holding
             self.player.attacking = True
@@ -169,10 +190,11 @@ class PlayerController:
             self.player.attack_direction = self.player.direction  # default direction while holding
             self.player.attack_anim_frame = 0
             self.player.attack_anim_timer = 0
+            self.player.charging_attack = True
         else:
             # Mouse released → decide attack
-            if self.charging_attack:
-                self.charging_attack = False
+            if self.player.charging_attack:
+                self.player.charging_attack = False
 
                 # Decide attack type based on hold duration
                 long_attack_threshold = 500  # milliseconds
@@ -197,9 +219,9 @@ class PlayerController:
 
                 # Moving?
                 if getattr(p, "moving", False):
-                    p.update_animation(dt, moving=True, running=p.running)
+                    p.update_animation(dt, moving=True, running=p.running, jumping=p.jumping)
                 else:
-                    p.update_animation(dt, moving=False, running=p.running)
+                    p.update_animation(dt, moving=False, running=p.running, jumping=p.jumping)
 
             # --- Still send position to server (optional, keeps sync) ---
             client.send_move(
@@ -209,7 +231,11 @@ class PlayerController:
                 self.moving,
                 scene_manager.server_info["ip"],
                 scene_manager.server_info["port"],
-                self.player.attacking
+                self.player.attacking,
+                self.player.running,
+                self.player.jumping,
+                self.player.long_attacking,
+                self.player.charging_attack
             )
 
             # --- Still let camera follow player for fade transitions ---
@@ -252,9 +278,9 @@ class PlayerController:
 
             # Moving?
             if getattr(p, "moving", False):
-                p.update_animation(dt, moving=True, running=p.running)
+                p.update_animation(dt, moving=True, running=p.running, jumping=p.jumping)
             else:
-                p.update_animation(dt, moving=False)
+                p.update_animation(dt, moving=False, running=p.running, jumping=p.jumping)
 
         # --- Send local move packet ---
         client.send_move(
@@ -264,7 +290,11 @@ class PlayerController:
             self.moving,
             scene_manager.server_info["ip"],
             scene_manager.server_info["port"],
-            self.player.attacking
+            self.player.attacking,
+            self.player.running,
+            self.player.jumping,
+            self.player.long_attacking,
+            self.player.charging_attack
         )
 
         # --- Camera follow ---

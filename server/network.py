@@ -54,10 +54,11 @@ class Network:
                         "timestamp": p.last_update_time,
                         "attacking": getattr(p, "attacking", False),
                         "running": getattr(p, "running", False),
+                        "jumping": getattr(p, "jumping", False),
+                        "long_attacking": getattr(p, "long_attacking", False),
+                        "charging_attack": getattr(p, "charging_attack", False),
                     })
-                    if getattr(p, "running"):
-                        print(f"Player {p.id} on map {p.running}")
-                    # current_player_scenes.append(p.current_map)
+
 
                 enemy_manager.update_all(dt, self.clients)  # Update enemies with dt and player info
 

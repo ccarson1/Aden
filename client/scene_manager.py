@@ -35,6 +35,10 @@ class SceneManager:
                 "up-longAttack": 31,
                 "left-longAttack": 32,
                 "right-longAttack": 34,
+                "down-jumping": 28,
+                "up-jumping": 26,
+                "left-jumping": 27,
+                "right-jumping": 29
 
             },
             "idle-cols": 2,
@@ -42,6 +46,7 @@ class SceneManager:
             "attack-cols": 6,
             "longAttack-cols": 13,
             "running-cols": 8,
+            "jumping-cols": 5,
             "idle-width": 48,
             "idle-height": 48,
             "move-width": 48,
@@ -57,8 +62,10 @@ class SceneManager:
             "anim_speeds": {
                 "default": 0.2,
                 "-idle": 0.35,
-                "-attack": 0.08,
-                "-longAttack": 0.10
+                "-attack": 0.06,
+                "-longAttack": 0.03,
+                "-running": 0.1,
+                "-jumping": 2.45,
             },
             "anim_offsets": {
                 "down-attack": (-19, -28),
