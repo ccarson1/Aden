@@ -9,8 +9,9 @@ import pygame
 import config
 
 class SceneManager:
-    def __init__(self, font):
+    def __init__(self, font, screen):
         self.font = font
+        self.screen = screen
         WIDTH, HEIGHT = config.WIDTH, config.HEIGHT
 
         anim_meta = {

@@ -40,7 +40,7 @@ class PlayerController:
         
 
 
-    def apply_input(self, dt, current_map):
+    def apply_input(self, dt, current_map, camera):
         input_state = self.capture_input()
         dx = input_state["d"] - input_state["a"]
         dy = input_state["s"] - input_state["w"]
@@ -80,6 +80,40 @@ class PlayerController:
 
         timestamp = time.time()
         self.input_history.append((timestamp, input_state))
+
+        mouse_pressed = pygame.mouse.get_pressed()
+
+         # Initialize charging time if it doesn't exist
+        if not hasattr(self, "attack_hold_time"):
+            self.attack_hold_time = 0
+
+        # --- Hold & Release Long Attack ---
+        if mouse_pressed[0]:
+            # Accumulate hold time
+            self.attack_hold_time += dt * 1000  # ms
+            self.player.charging_attack = True
+
+            # Show the first attack frame while holding
+            self.player.attacking = True
+            self.player.long_attacking = False  # don't set long_attack yet
+            self.player.attack_direction = self.player.direction  # default direction while holding
+            self.player.attack_anim_frame = 0
+            self.player.attack_anim_timer = 0
+            self.player.charging_attack = True
+        else:
+            # Mouse released → decide attack
+            if self.player.charging_attack:
+                self.player.charging_attack = False
+
+                # Decide attack type based on hold duration
+                long_attack_threshold = 500  # milliseconds
+                if self.attack_hold_time >= long_attack_threshold:
+                    self.long_attack = True
+                else:
+                    self.long_attack = False
+
+                self.start_attack(camera)  # now start actual attack animation
+                self.attack_hold_time = 0  # reset for next attack
 
         return moving
 
@@ -170,41 +204,9 @@ class PlayerController:
         self.player.moving = False
 
 
-    def update(self, dt, current_map, players, client, scene_manager, camera):
+    def update(self, dt, current_map, players, client, scene_manager, camera, menu_active):
 
-        mouse_pressed = pygame.mouse.get_pressed()
-
-         # Initialize charging time if it doesn't exist
-        if not hasattr(self, "attack_hold_time"):
-            self.attack_hold_time = 0
-
-        # --- Hold & Release Long Attack ---
-        if mouse_pressed[0]:
-            # Accumulate hold time
-            self.attack_hold_time += dt * 1000  # ms
-            self.player.charging_attack = True
-
-            # Show the first attack frame while holding
-            self.player.attacking = True
-            self.player.long_attacking = False  # don't set long_attack yet
-            self.player.attack_direction = self.player.direction  # default direction while holding
-            self.player.attack_anim_frame = 0
-            self.player.attack_anim_timer = 0
-            self.player.charging_attack = True
-        else:
-            # Mouse released → decide attack
-            if self.player.charging_attack:
-                self.player.charging_attack = False
-
-                # Decide attack type based on hold duration
-                long_attack_threshold = 500  # milliseconds
-                if self.attack_hold_time >= long_attack_threshold:
-                    self.long_attack = True
-                else:
-                    self.long_attack = False
-
-                self.start_attack(camera)  # now start actual attack animation
-                self.attack_hold_time = 0  # reset for next attack
+        
 
         if self.frozen:
             # --- Still update remote players so they animate correctly ---
@@ -249,7 +251,8 @@ class PlayerController:
 
         # --- Normal behavior when not frozen ---
         self.check_portals(current_map, scene_manager)
-        self.apply_input(dt, current_map)
+        if not menu_active:
+            self.apply_input(dt, current_map, camera)
 
         # --- Interpolate local player towards server ---
         if hasattr(self.player, "server_x"):

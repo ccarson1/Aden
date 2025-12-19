@@ -14,7 +14,10 @@ from ..ui import toast_manager
 from ..tools import tool_utilities
 from client.entities.player_controller import PlayerController
 from client.entities.enemy_controller import EnemyController
-
+from client.scenes.menu_scene import MenuScene
+from client.menu.inventory import InventorySystem
+from client.menu.main import MenuManager, GameMenuScreen, inventory
+from client.menu.item import Item
 
 class GameScene:
     """
@@ -36,6 +39,10 @@ class GameScene:
         self.scene_manager = scene_manager
         self.font = font
         self.client = client
+
+        self.menu_scene = MenuManager()
+        self.menu_scene.add_screen(GameMenuScreen())
+        self.menu_scene.add_screen(inventory)
 
         # Local player instance (controlled by this client)
         self.local_player = self.client.local_player
@@ -64,6 +71,46 @@ class GameScene:
         self.player_controller = PlayerController(self.local_player, self.font)
         self.enemy_controller = EnemyController()
 
+
+        # Menu overlay (pause/menu system)
+        self.inventory = InventorySystem()
+        self.inventory.database.init_db()
+        self.inventory.database.load_from_db()
+        # preload sample items if inventory empty
+        # Sample items
+        sample_items = [
+            Item("Health Potion", 5, "potion", config.ITEM_COLORS["potion"], {}, True, config.asset("potions/Transperent/Icon1.png"), spoil=20),
+            Item("Health Potion", 2, "potion", config.ITEM_COLORS["potion"], {}, True, config.asset("potions/Transperent/Icon1.png"), spoil=50),
+            Item("Mana Potion", 3, "potion", config.ITEM_COLORS["potion"], {}, True, config.asset("potions/Transperent/Icon3.png"), spoil=80),
+
+            Item("Jasmine", 6, "ingredient", config.ITEM_COLORS["ingredient"], {}, True, config.asset("items/item381.png")),
+
+            Item("Iron Sword", 1, "weapon", config.ITEM_COLORS["weapon"], {"attack": 5},
+                False, config.asset("items/item1.png"), level=1, xp=60, max_xp=100),
+
+            Item("Leather Armor", 1, "armor", config.ITEM_COLORS["armor"], {"defense": 3},
+                False, config.asset("items/item123.png")),
+
+            Item("Iron Helmet", 1, "armor", config.ITEM_COLORS["armor"], {"defense": 2},
+                False, config.asset("items/item117.png")),
+
+            Item("Lucky Charm", 1, "accessory", config.ITEM_COLORS["accessory"], {"luck": 5},
+                False, config.asset("items/item102.png")),
+
+            Item("Monster Crystal", 1, "material", config.ITEM_COLORS["material"], {},
+                True, config.asset("items/item256.png"), level=1, xp=13, max_xp=50),
+            Item("Monster Crystal", 1, "material", config.ITEM_COLORS["material"], {},
+                True, config.asset("items/item256.png"), level=1, xp=13, max_xp=50),
+            Item("Monster Crystal", 1, "material", config.ITEM_COLORS["material"], {},
+                True, config.asset("items/item256.png"), level=1, xp=30, max_xp=50),
+            Item("Potion Crystal", 1, "material", config.ITEM_COLORS["material"], {},
+                False, config.asset("items/item270.png")),
+        ]
+        if all(i is None for i in inventory.database.inventory):
+            for idx,item in enumerate(sample_items):
+                inventory.database.inventory[idx] = item
+        self.menu_scene = MenuScene(inventory=self.inventory)
+
     
     def connect_to_server(self, server_ip, server_port):
         """
@@ -74,15 +121,37 @@ class GameScene:
         self.client.connect(server_ip, server_port, token)
 
     def handle_event(self, event):
-        """
-        Handle Pygame events for the scene.
-        Currently only handles quitting the game.
-        """
         if event.type == pygame.QUIT:
             pygame.quit()
             exit()
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Left click
-            #self.print_click_position(event.pos)
+
+        # # Toggle menu
+        # if event.type == pygame.KEYDOWN:
+        #     # Open menu with M
+        #     if event.key == pygame.K_m:
+        #         if self.menu_scene.active:
+        #             #self.menu_scene.close()
+        #             self.menu_scene.manager.switch_screen("Menu")
+                    
+        #         else:
+        #             self.menu_scene.open()
+        #         return
+
+        #     if event.key == pygame.K_ESCAPE and self.menu_scene.active:
+        #         self.menu_scene.close()
+        #         return
+
+        # # If menu is open, it owns input
+        # if self.menu_scene.active:
+            
+        #     return
+
+        self.menu_scene.handle_event(event)
+        
+        
+
+        # ---- GAME INPUT BELOW (unchanged behavior) ----
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self.tool_utilities.print_click_position(event.pos, self.camera.rect)
 
 
@@ -97,7 +166,7 @@ class GameScene:
 
         self.enemy_controller.update(dt, self.current_map)
         
-        self.player_controller.update(dt, self.current_map, self.players, self.client, self.scene_manager, self.camera)
+        self.player_controller.update(dt, self.current_map, self.players, self.client, self.scene_manager, self.camera, self.menu_scene.active)
 
         # Always update camera, even if player isn't moving
         if self.current_map:
@@ -266,6 +335,9 @@ class GameScene:
         # # Update + draw snow (commented out in original)
         # self.snow.update()
         # self.snow.draw(surface)
+
+        # ---- MENU OVERLAY ----
+        self.menu_scene.draw(surface)
 
         # draw toasts in top-right
         self.toast_manager.draw(surface)

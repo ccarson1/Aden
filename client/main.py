@@ -10,6 +10,7 @@ pygame.init()
 # Create a font instance to pass to UI elements
 FONT_SIZE = config.FONT_SIZE
 MAIN_FONT = pygame.font.SysFont(None, FONT_SIZE)
+config.init_fonts()
 
 WIDTH, HEIGHT = config.WIDTH, config.HEIGHT
 # Default flags (software surface)
@@ -31,7 +32,7 @@ pygame.display.set_caption("Aden")
 
 
 
-scene_manager = SceneManager(MAIN_FONT)
+scene_manager = SceneManager(MAIN_FONT, screen)
 clock = pygame.time.Clock()
 
 atexit.register(local_server.stop_servers)
