@@ -67,7 +67,7 @@ class Player:
         sheet_w, sheet_h = self.spritesheet.get_size()
         skip_frames = meta.get("skip_frames", {})
 
-        print("\n========== LOADING PLAYER FRAMES ==========")
+        #print("\n========== LOADING PLAYER FRAMES ==========")
 
         for anim_name, row_idx in meta.get("direction_row", {}).items():
 
@@ -99,10 +99,10 @@ class Player:
             skip = skip_frames.get(anim_name, 0)
             frames = []
 
-            print(f"\n[LOAD] Animation '{anim_name}'")
-            print(f"       Row: {row_idx}")
-            print(f"       Frame size: {frame_w}x{frame_h}")
-            print(f"       Columns: {cols}, Skip first: {skip}")
+            # print(f"\n[LOAD] Animation '{anim_name}'")
+            # print(f"       Row: {row_idx}")
+            # print(f"       Frame size: {frame_w}x{frame_h}")
+            # print(f"       Columns: {cols}, Skip first: {skip}")
 
             for i in range(skip, cols):
                 rect_x = i * frame_w
@@ -110,7 +110,7 @@ class Player:
 
                 # Bounds check instead of clamping
                 if rect_x + frame_w > sheet_w or rect_y + frame_h > sheet_h:
-                    print(f"       [SKIP] Frame {i}: OUT OF BOUNDS ({rect_x},{rect_y})")
+                    #print(f"       [SKIP] Frame {i}: OUT OF BOUNDS ({rect_x},{rect_y})")
                     continue
 
                 try:
@@ -118,14 +118,14 @@ class Player:
                         pygame.Rect(rect_x, rect_y, frame_w, frame_h)
                     ).copy()
                     frames.append(frame)
-                    print(f"       [OK]   Frame {i}: ({rect_x},{rect_y})")
+                    #print(f"       [OK]   Frame {i}: ({rect_x},{rect_y})")
 
                 except Exception as e:
                     print(f"       [ERR]  Frame {i}: ({rect_x},{rect_y}) - {e}")
 
             self.frames[anim_name] = frames
 
-            print(f"       => Loaded {len(frames)} frames for '{anim_name}'")
+            #print(f"       => Loaded {len(frames)} frames for '{anim_name}'")
 
             if len(frames) == 0:
                 print(f"       !!! ERROR: NO FRAMES LOADED for '{anim_name}' !!!")
@@ -133,7 +133,7 @@ class Player:
             if len(frames) < cols - skip:
                 print(f"       !!! WARNING: Missing frames for '{anim_name}' !!!")
 
-        print("========== DONE LOADING FRAMES ==========\n")
+        #print("========== DONE LOADING FRAMES ==========\n")
 
 
 

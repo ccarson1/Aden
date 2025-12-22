@@ -378,6 +378,8 @@ class CreateScene:
 
         # Wrapped description text
         self._draw_wrapped_text(surface, self.description_text, self.desc_rect.x + 20, self.desc_rect.y + 20, self.desc_rect.width - 40)
+        # Draw the game cursor
+        self.scene_manager.game_cursor.draw(surface)
 
     # Draw multiline text
     def _draw_wrapped_text(self, surface, text, x, y, max_width):

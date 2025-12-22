@@ -5,6 +5,7 @@ from client.scenes.server_scene import ServerScene
 from client.scenes.game_scene import GameScene
 from client.network.client import Client
 from client.network.network import NetworkClient
+from client.ui.game_cursor import GameCursor
 import pygame
 import config
 
@@ -13,6 +14,7 @@ class SceneManager:
         self.font = font
         self.screen = screen
         WIDTH, HEIGHT = config.WIDTH, config.HEIGHT
+        self.game_cursor = GameCursor()
 
         anim_meta = {
             "direction_row": {

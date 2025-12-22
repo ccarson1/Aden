@@ -19,7 +19,9 @@ flags = 0
 # Check if hardware acceleration is available
 info = pygame.display.Info()
 if hasattr(info, "hw") and info.hw:  # hardware surfaces supported
-    flags |= pygame.HWSURFACE | pygame.DOUBLEBUF
+    #flags = pygame.OPENGL | pygame.DOUBLEBUF
+    print("[INFO] Hardware acceleration available — using GPU mode.")
+
 else:
     # fallback to software rendering
     print("[INFO] Hardware acceleration not available — using CPU mode.")
@@ -27,9 +29,11 @@ else:
 # Optional: use fullscreen or resizable flags if you like
 # flags |= pygame.RESIZABLE
 
+last_scene = None
+
 screen = pygame.display.set_mode((WIDTH, HEIGHT), flags)
 pygame.display.set_caption("Aden")
-
+pygame.mouse.set_visible(False)
 
 
 scene_manager = SceneManager(MAIN_FONT, screen)
@@ -41,6 +45,7 @@ atexit.register(local_server.stop_servers)
 running = True
 while running:
     dt = clock.tick(60) / 1000
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False

@@ -48,7 +48,7 @@ class MenuScene:
                 self.close()  # Close the menu on ESC
             elif event.key == pygame.K_m:
                 if self.active:
-                    if self.manager.active_screen is "Menu":
+                    if self.manager.active_screen == "Menu":
                         self.close()
                     else:
                         self.manager.active_screen = "Menu"
@@ -57,7 +57,7 @@ class MenuScene:
                     self.manager.active_screen = "Menu"
             elif event.key == pygame.K_i:
                 if self.active:
-                    if self.manager.active_screen is "Inventory":
+                    if self.manager.active_screen == "Inventory":
                         self.close()
                     else:
                         self.manager.active_screen = "Inventory"
@@ -66,7 +66,7 @@ class MenuScene:
                     self.manager.active_screen = "Inventory"
             elif event.key == pygame.K_h:
                 if self.active:
-                    if self.manager.active_screen is "Alchemy":
+                    if self.manager.active_screen == "Alchemy":
                         self.close()
                     else:
                         self.manager.active_screen = "Alchemy"
@@ -75,7 +75,7 @@ class MenuScene:
                     self.manager.active_screen = "Alchemy"
             elif event.key == pygame.K_c:
                 if self.active:
-                    if self.manager.active_screen is "Crafting":
+                    if self.manager.active_screen == "Crafting":
                         self.close()
                     else:
                         self.manager.active_screen = "Crafting"
@@ -84,7 +84,7 @@ class MenuScene:
                     self.manager.active_screen = "Crafting"
             elif event.key == pygame.K_k:
                 if self.active:
-                    if self.manager.active_screen is "Cooking":
+                    if self.manager.active_screen == "Cooking":
                         self.close()
                     else:
                         self.manager.active_screen = "Cooking"
@@ -93,7 +93,7 @@ class MenuScene:
                     self.manager.active_screen = "Cooking"
             elif event.key == pygame.K_l:
                 if self.active:
-                    if self.manager.active_screen is "Skills":
+                    if self.manager.active_screen == "Skills":
                         self.close()
                     else:
                         self.manager.active_screen = "Skills"
@@ -102,7 +102,7 @@ class MenuScene:
                     self.manager.active_screen = "Skills"
             elif event.key == pygame.K_e:
                 if self.active:
-                    if self.manager.active_screen is "Enchanting":
+                    if self.manager.active_screen == "Enchanting":
                         self.close()
                     else:
                         self.manager.active_screen = "Enchanting"
@@ -111,7 +111,7 @@ class MenuScene:
                     self.manager.active_screen = "Enchanting"
             elif event.key == pygame.K_g:
                 if self.active:
-                    if self.manager.active_screen is "Guild":
+                    if self.manager.active_screen == "Guild":
                         self.close()
                     else:
                         self.manager.active_screen = "Guild"
@@ -120,7 +120,7 @@ class MenuScene:
                     self.manager.active_screen = "Guild"
             elif event.key == pygame.K_q:
                 if self.active:
-                    if self.manager.active_screen is "Quests":
+                    if self.manager.active_screen == "Quests":
                         self.close()
                     else:
                         self.manager.active_screen = "Quests"
@@ -129,7 +129,7 @@ class MenuScene:
                     self.manager.active_screen = "Quests"
             elif event.key == pygame.K_j:
                 if self.active:
-                    if self.manager.active_screen is "Settings":
+                    if self.manager.active_screen == "Settings":
                         self.close()
                     else:
                         self.manager.active_screen = "Settings"

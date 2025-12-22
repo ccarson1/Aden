@@ -62,7 +62,7 @@ def sort_inventory_by_type(database):
     non_empty = [item for item in database.inventory if item]
     empty_slots = [None] * (len(database.inventory) - len(non_empty))
     non_empty.sort(key=lambda x: x.get("type", ""))
-    database.inventory = non_empty + empty_slotsz
+    database.inventory = non_empty + empty_slots
 
 def add_item_to_inventory(inv, item):
     """Try to merge into stacks first, then put in first empty slot.

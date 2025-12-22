@@ -40,12 +40,22 @@ class GameMenuScreen(MenuScreen):
         start_y = height // 2 - (btn_h*3 + gap*2)//2  # vertically center 3 buttons
 
         for i, btn in enumerate(self.buttons):
-            rect = pygame.Rect(start_x, start_y + i*(btn_h + gap), btn_w, btn_h)
-            pygame.draw.rect(surface, config.GRAY, rect, border_radius=6)
-            pygame.draw.rect(surface, config.WHITE, rect, 2, border_radius=6)
+            btn["rect"] = pygame.Rect(
+                start_x,
+                start_y + i*(btn_h + gap),
+                btn_w,
+                btn_h
+            )
+
+            pygame.draw.rect(surface, config.GRAY, btn["rect"], border_radius=6)
+            pygame.draw.rect(surface, config.WHITE, btn["rect"], 2, border_radius=6)
+
             txt = config.font_medium.render(btn["label"], True, config.WHITE)
-            surface.blit(txt, (rect.centerx - txt.get_width()//2,
-                            rect.centery - txt.get_height()//2))
+            surface.blit(
+                txt,
+                (btn["rect"].centerx - txt.get_width()//2,
+                btn["rect"].centery - txt.get_height()//2)
+            )
 
 
     def handle_mouse_down(self, pos, button):
@@ -54,9 +64,10 @@ class GameMenuScreen(MenuScreen):
         for btn in self.buttons:
             if btn["rect"].collidepoint(pos):
                 if btn["label"] == "Save":
-                    self.inventory.save_to_db()
+                    self.inventory.database.save_to_db()
                 elif btn["label"] == "Load":
-                    self.inventory.load_from_db()
+                    self.inventory.database.load_from_db()
                 elif btn["label"] == "Exit":
+                    print("Exiting game...")
                     pygame.quit()
                     sys.exit()

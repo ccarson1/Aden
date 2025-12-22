@@ -19,6 +19,7 @@ from client.menu.inventory import InventorySystem
 from client.menu.main import MenuManager, GameMenuScreen, inventory
 from client.menu.item import Item
 
+
 class GameScene:
     """
     Represents the main gameplay scene where the local player, remote players,
@@ -43,6 +44,8 @@ class GameScene:
         self.menu_scene = MenuManager()
         self.menu_scene.add_screen(GameMenuScreen())
         self.menu_scene.add_screen(inventory)
+        
+        
 
         # Local player instance (controlled by this client)
         self.local_player = self.client.local_player
@@ -184,6 +187,7 @@ class GameScene:
 
         self.toast_manager.update()
         self.world_time.update(self.server_time)
+        self.scene_manager.game_cursor.update(self.local_player.charging_attack, dt)
         
 
 
@@ -342,7 +346,8 @@ class GameScene:
         # draw toasts in top-right
         self.toast_manager.draw(surface)
 
-
+        # Draw the game cursor
+        self.scene_manager.game_cursor.draw(surface, self.menu_scene.active)
 
 
 

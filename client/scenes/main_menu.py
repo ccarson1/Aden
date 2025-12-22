@@ -174,3 +174,4 @@ class MainMenu:
         surface.blit(self.background_image, (0,0))
         for item in self.focusable:
             item.draw(surface)
+        self.scene_manager.game_cursor.draw(surface)
